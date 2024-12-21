@@ -1,0 +1,15 @@
+{
+  "name": "investment-assistant-frontend",
+  "private": true,
+  "scripts": {
+    "dev": "max dev",
+    "build": "max build",
+    "start": "npm run dev"
+  },
+  "dependencies": {
+    "@ant-design/charts": "^1.4.2",
+    "@ant-design/pro-components": "^2.6.0",
+    "@umijs/max": "^4.0.0",
+    "antd": "^5.0.0"
+  }
+} 

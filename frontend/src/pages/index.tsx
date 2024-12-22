@@ -173,44 +173,64 @@ const IndexPage: React.FC = () => {
             type: 'cross'
           },
           formatter: (params: any) => {
-            // K线图数据
-            const candleStick = params.find((param: any) => param.seriesType === 'candlestick');
-            // 成交量数据
-            const volume = params.find((param: any) => param.seriesName === '成交量');
-            
-            if (!candleStick) return '';
-            
-            const time = type === 'min' ? 
-              candleStick.axisValue.slice(-5) : 
-              candleStick.axisValue;
+            if (type === 'min') {
+              // 分时图的提示框格式
+              const price = params.find((param: any) => param.seriesName === '指数');
+              const volume = params.find((param: any) => param.seriesName === '成交量');
               
-            return `
-              时间：${time}<br/>
-              开盘：${candleStick.data[0]}<br/>
-              收盘：${candleStick.data[1]}<br/>
-              最低：${candleStick.data[2]}<br/>
-              最高：${candleStick.data[3]}<br/>
-              成交量：${volume ? volume.data : '-'}
-            `;
+              return `
+                时间：${price.axisValue}<br/>
+                价格：${price.data}<br/>
+                成交量：${volume ? volume.data : '-'}
+              `;
+            } else {
+              // K线图的提示框格式保持不变
+              const candleStick = params.find((param: any) => param.seriesType === 'candlestick');
+              const volume = params.find((param: any) => param.seriesName === '成交量');
+              
+              if (!candleStick) return '';
+              
+              return `
+                时间：${candleStick.axisValue}<br/>
+                开盘：${candleStick.data[0]}<br/>
+                收盘：${candleStick.data[1]}<br/>
+                最低：${candleStick.data[2]}<br/>
+                最高：${candleStick.data[3]}<br/>
+                成交量：${volume ? volume.data : '-'}
+              `;
+            }
           }
         },
         grid: [{
           left: '3%',
           right: '3%',
-          height: '60%'
+          top: '5%',
+          height: '60%',
+          containLabel: true
         }, {
           left: '3%',
           right: '3%',
           top: '75%',
-          height: '20%'
+          height: '20%',
+          containLabel: true
         }],
         xAxis: [{
           type: 'category',
-          data: data.map(item => type === 'min' ? item.time.slice(-5) : item.time),
+          data: data.map(item => item.time),
+          boundaryGap: false,  // 分时图两边不留白
+          axisLine: { onZero: false },
+          axisTick: { show: true },
           axisLabel: {
             formatter: (value: string) => {
               if (type === 'min') {
-                return value.slice(-5);
+                // 假设时间格式是 "YYYYMMDD HH:MM:SS" 或 "YYYY-MM-DD HH:MM:SS"
+                const timeMatch = value.match(/\d{2}:\d{2}(:\d{2})?/);
+                if (timeMatch) {
+                  return timeMatch[0].slice(0, 5);  // 只返回 HH:MM
+                }
+                // 如果没有匹配到预期格式，打印日志以便调试
+                console.log('Unexpected time format:', value);
+                return value;
               }
               return value;
             }
@@ -219,22 +239,36 @@ const IndexPage: React.FC = () => {
         }, {
           type: 'category',
           gridIndex: 1,
-          data: data.map(item => type === 'min' ? item.time.slice(-5) : item.time),
-          axisLabel: {show: false}
+          data: data.map(item => item.time),
+          axisLabel: { show: false },
+          axisTick: { show: false },
+          axisLine: { show: false }
         }],
         yAxis: [{
+          type: 'value',
           scale: true,
           splitLine: {
-            show: true
+            show: true,
+            lineStyle: {
+              type: 'dashed'
+            }
           },
           gridIndex: 0
         }, {
-          scale: true,
+          type: 'value',
           gridIndex: 1,
-          splitNumber: 2,
-          axisLabel: {show: false}
+          splitNumber: 3,
+          axisLabel: { show: true },
+          axisLine: { show: false },
+          axisTick: { show: false },
+          splitLine: {
+            show: true,
+            lineStyle: {
+              type: 'dashed'
+            }
+          }
         }],
-        series: [
+        series: type === 'min' ? [
           {
             type: 'candlestick',
             data: data.map(item => ([
@@ -248,9 +282,34 @@ const IndexPage: React.FC = () => {
               color0: '#14b143',
               borderColor: '#ef232a',
               borderColor0: '#14b143'
-            },
-            xAxisIndex: 0,
-            yAxisIndex: 0
+            }
+          },
+          {
+            name: '成交量',
+            type: 'bar',
+            xAxisIndex: 1,
+            yAxisIndex: 1,
+            data: data.map(item => item.volume),
+            itemStyle: {
+              color: '#2196F3'
+            }
+          }
+        ] : [
+          // K线图的series配置
+          {
+            type: 'candlestick',
+            data: data.map(item => ([
+              item.open,
+              item.close,
+              item.low,
+              item.high
+            ])),
+            itemStyle: {
+              color: '#ef232a',
+              color0: '#14b143',
+              borderColor: '#ef232a',
+              borderColor0: '#14b143'
+            }
           },
           {
             name: '成交量',
@@ -259,28 +318,11 @@ const IndexPage: React.FC = () => {
             yAxisIndex: 1,
             data: data.map(item => item.volume)
           }
-        ],
-        dataZoom: [
-          {
-            type: 'inside',
-            xAxisIndex: [0, 1],
-            start: 0,
-            end: 100
-          },
-          {
-            show: true,
-            xAxisIndex: [0, 1],
-            type: 'slider',
-            bottom: '0%',
-            start: 0,
-            end: 100
-          }
         ]
       };
 
       chartInstance.current.setOption(option);
 
-      // 添加窗口大小变化的监听
       const handleResize = () => {
         chartInstance.current?.resize();
       };

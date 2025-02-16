@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import datetime
 
+from asgiref.sync import async_to_sync
 from django.core.cache import cache
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
@@ -37,7 +38,7 @@ market_service = MarketService()
 
 
 @api_view(["GET"])
-async def market_index(request, market: str, index_code: str):
+def market_index(request, market: str, index_code: str):
     """
     获取指定市场的指数数据
     :param market: 市场代码 (CN/HK/US)
@@ -89,7 +90,7 @@ async def market_index(request, market: str, index_code: str):
         if chart_type == "kline":
             if start_time and end_time:
                 # 获取历史数据
-                data = await market_service.get_market_history(
+                data = async_to_sync(market_service.get_market_history)(
                     market=market,
                     symbol=symbol,
                     start_time=start_time,
@@ -97,7 +98,7 @@ async def market_index(request, market: str, index_code: str):
                 )
             else:
                 # 获取最新数据
-                data = await market_service.get_market_data(
+                data = async_to_sync(market_service.get_market_data)(
                     market=market, symbol=symbol, period=period
                 )
         else:  # trend
@@ -110,7 +111,7 @@ async def market_index(request, market: str, index_code: str):
                     status=400,
                 )
             # 获取趋势数据
-            data = await market_service.get_market_trend(
+            data = async_to_sync(market_service.get_market_trend)(
                 market=market,
                 symbol=symbol,
                 start_time=start_time,

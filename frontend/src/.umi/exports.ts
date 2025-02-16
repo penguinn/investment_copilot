@@ -5,15 +5,7 @@
 export { defineApp } from './core/defineApp'
 export type { RuntimeConfig } from './core/defineApp'
 // plugins
-export { Access, useAccess, useAccessMarkedRoutes } from '/Users/57block/Documents/investment_copilot/frontend/src/.umi/plugin-access';
-export { useAntdConfig, useAntdConfigSetter } from '/Users/57block/Documents/investment_copilot/frontend/src/.umi/plugin-antd';
-export { Provider, useModel } from '/Users/57block/Documents/investment_copilot/frontend/src/.umi/plugin-model';
-export { useRequest, UseRequestProvider, request, getRequestInstance } from '/Users/57block/Documents/investment_copilot/frontend/src/.umi/plugin-request';
 // plugins types.d.ts
-export * from '/Users/57block/Documents/investment_copilot/frontend/src/.umi/plugin-access/types.d';
-export * from '/Users/57block/Documents/investment_copilot/frontend/src/.umi/plugin-antd/types.d';
-export * from '/Users/57block/Documents/investment_copilot/frontend/src/.umi/plugin-layout/types.d';
-export * from '/Users/57block/Documents/investment_copilot/frontend/src/.umi/plugin-request/types.d';
 // @umijs/renderer-*
 export { createBrowserHistory, createHashHistory, createMemoryHistory, Helmet, HelmetProvider, createSearchParams, generatePath, matchPath, matchRoutes, Navigate, NavLink, Outlet, resolvePath, useLocation, useMatch, useNavigate, useOutlet, useOutletContext, useParams, useResolvedPath, useRoutes, useSearchParams, useAppData, useClientLoaderData, useLoaderData, useRouteProps, useSelectedRoutes, useServerLoaderData, renderClient, __getRoot, Link, useRouteData, __useFetcher, withRouter } from '/Users/57block/Documents/investment_copilot/frontend/node_modules/@umijs/renderer-react';
 export type { History, ClientLoader } from '/Users/57block/Documents/investment_copilot/frontend/node_modules/@umijs/renderer-react'

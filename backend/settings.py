@@ -98,8 +98,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",  # 前端开发服务器
-    "http://localhost:8080",  # 后端开发服务器
     "http://127.0.0.1:8000",  # 前端开发服务器 (alternative)
+    "http://localhost:8080",  # 后端开发服务器
     "http://127.0.0.1:8080",  # 后端开发服务器 (alternative)
 ]
 

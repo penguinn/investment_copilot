@@ -3,7 +3,6 @@
 // DO NOT CHANGE IT MANUALLY!
 import './core/polyfill';
 import '/Users/57block/Documents/investment_copilot/frontend/src/global.less';
-import 'antd/dist/reset.css';
 import { renderClient } from '/Users/57block/Documents/investment_copilot/frontend/node_modules/@umijs/renderer-react';
 import { getRoutes } from './core/route';
 import { createPluginManager } from './core/plugin';
@@ -77,6 +76,6 @@ render();
 
     if (typeof window !== 'undefined') {
       window.g_umi = {
-        version: '4.4.1',
+        version: '4.4.5',
       };
     }

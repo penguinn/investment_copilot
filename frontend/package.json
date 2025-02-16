@@ -1,16 +1,27 @@
 {
   "name": "investment-assistant-frontend",
   "private": true,
+  "author": "penguinn <852198764@qq.com>",
   "scripts": {
-    "dev": "max dev",
-    "build": "max build",
+    "dev": "umi dev",
+    "build": "umi build",
+    "postinstall": "umi setup",
+    "setup": "umi setup",
     "start": "npm run dev"
   },
   "dependencies": {
-    "@ant-design/charts": "^1.4.2",
-    "@ant-design/pro-components": "^2.6.0",
-    "@umijs/max": "^4.0.0",
-    "antd": "^5.0.0",
-    "echarts": "^5.5.1"
+    "@ant-design/icons": "^5.0.1",
+    "@ant-design/pro-components": "^2.4.4",
+    "antd": "^5.4.0",
+    "echarts": "^5.4.2",
+    "umi": "^4.0.64",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.33",
+    "@types/react-dom": "^18.0.11",
+    "typescript": "^5.0.3",
+    "@umijs/plugins": "^4.0.64"
   }
 }

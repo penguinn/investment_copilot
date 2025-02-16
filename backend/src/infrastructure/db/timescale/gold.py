@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from asgiref.sync import sync_to_async
 from django.db import transaction
 from django.db.models import Avg, Max, Min
 
@@ -14,10 +15,11 @@ class GoldRepository(BaseTimeSeriesRepository):
     def __init__(self):
         super().__init__(GoldIndex)
 
+    @sync_to_async
     @transaction.atomic
-    async def save(self, data: Dict[str, Any]) -> None:
+    def save(self, data: Dict[str, Any]) -> None:
         """保存黄金数据"""
-        await self.model.objects.create(
+        self.model.objects.create(
             symbol=data["symbol"],
             name=data["name"],
             time=datetime.now(),
@@ -30,28 +32,29 @@ class GoldRepository(BaseTimeSeriesRepository):
             change_percent=data["change_percent"],
         )
 
-    async def get_latest(self, symbol: str) -> Optional[GoldIndex]:
+    @sync_to_async
+    def get_latest(self, symbol: str) -> Optional[GoldIndex]:
         """获取最新黄金数据"""
-        return await self.model.objects.filter(symbol=symbol).order_by("-time").first()
+        return self.model.objects.filter(symbol=symbol).order_by("-time").first()
 
-    async def get_history(
+    @sync_to_async
+    def get_history(
         self, start_time: str, end_time: str, symbol: str
     ) -> List[GoldIndex]:
         """获取历史数据"""
         return list(
-            await self.model.objects.filter(
+            self.model.objects.filter(
                 symbol=symbol, time__range=(start_time, end_time)
             ).order_by("time")
         )
 
-    async def get_by_time_bucket(
+    @sync_to_async
+    def get_by_time_bucket(
         self, start_time: str, end_time: str, interval: str, symbol: str
     ) -> List[Dict[str, Any]]:
         """获取时间段内的聚合数据"""
         return list(
-            await self.model.objects.filter(
-                symbol=symbol, time__range=(start_time, end_time)
-            )
+            self.model.objects.filter(symbol=symbol, time__range=(start_time, end_time))
             .time_bucket("time", interval)
             .annotate(
                 avg_price=Avg("price"), max_price=Max("high"), min_price=Min("low")

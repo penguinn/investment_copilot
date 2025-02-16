@@ -11,15 +11,15 @@ class MarketIndex(models.Model):
         ("GOLD", "Gold"),
     ]
 
-    symbol = models.CharField(max_length=20)  # 指数代码
-    market = models.CharField(max_length=10, choices=MARKET_CHOICES)  # 市场类型
-    name = models.CharField(max_length=50)  # 指数名称
-    time = models.DateTimeField()  # 时间戳
-    open = models.DecimalField(max_digits=10, decimal_places=2)
-    high = models.DecimalField(max_digits=10, decimal_places=2)
-    low = models.DecimalField(max_digits=10, decimal_places=2)
-    close = models.DecimalField(max_digits=10, decimal_places=2)
-    volume = models.BigIntegerField(null=True)  # 成交量，黄金指数可能没有
+    symbol = models.CharField(max_length=10, help_text="指数代码")
+    market = models.CharField(max_length=10, help_text="市场代码")
+    name = models.CharField(max_length=50, help_text="指数名称")
+    time = models.DateTimeField(help_text="时间")
+    open = models.DecimalField(max_digits=10, decimal_places=2, help_text="开盘价")
+    high = models.DecimalField(max_digits=10, decimal_places=2, help_text="最高价")
+    low = models.DecimalField(max_digits=10, decimal_places=2, help_text="最低价")
+    close = models.DecimalField(max_digits=10, decimal_places=2, help_text="收盘价")
+    volume = models.DecimalField(max_digits=20, decimal_places=2, help_text="成交量")
     change = models.DecimalField(max_digits=10, decimal_places=2, null=True)  # 涨跌额
     change_percent = models.DecimalField(
         max_digits=5, decimal_places=2, null=True
@@ -28,8 +28,7 @@ class MarketIndex(models.Model):
     class Meta:
         db_table = "market_index"
         indexes = [
-            models.Index(fields=["symbol", "time"]),
-            models.Index(fields=["market"]),
+            models.Index(fields=["market", "symbol", "time"]),
         ]
         unique_together = ("symbol", "time")
 

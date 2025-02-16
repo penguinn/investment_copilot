@@ -1,5 +1,8 @@
 import logging
+from datetime import datetime
 from typing import Any, Dict, List
+
+import pytz
 
 from ..infrastructure.client.akshare.gold import GoldClient
 from ..infrastructure.db.redis.gold import GoldCache
@@ -37,9 +40,17 @@ class GoldService:
             # 保存到时序数据库并更新缓存
             for symbol, data in api_data.items():
                 if symbol not in result:  # 只处理未缓存的数据
-                    data["symbol"] = symbol
-                    await self.repository.save(data)
+                    # 为数据库保存准备带时区的datetime对象
+                    db_data = data.copy()
+                    db_data["time"] = datetime.strptime(
+                        data["time"], "%Y-%m-%d %H:%M:%S"
+                    ).replace(tzinfo=pytz.timezone("Asia/Shanghai"))
+
+                    # 保存到数据库
+                    await self.repository.save(db_data)
+
                     if use_cache:
+                        # 缓存和返回使用原始数据（带字符串时间）
                         await self.cache.set_latest(symbol, data)
                     result[symbol] = data
 

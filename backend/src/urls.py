@@ -22,10 +22,10 @@ from .api.controller import gold_controller, market_controller
 urlpatterns = [
     # 市场指数接口
     path(
-        "api/market/<str:market>/<str:index_code>",
+        "market/<str:market>/<str:index_code>",
         market_controller.market_index,
         name="market_index",
     ),
     # 黄金指数接口
-    path("api/gold", gold_controller.gold_index, name="gold_index"),
+    path("gold", gold_controller.gold_index, name="gold_index"),
 ]

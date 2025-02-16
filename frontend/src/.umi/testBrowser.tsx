@@ -11,7 +11,6 @@ import type { Location } from 'history';
 
 
 import '/Users/57block/Documents/investment_copilot/frontend/src/global.less';
-import 'antd/dist/reset.css';
 const publicPath = '/';
 const runtimePublicPath = false;
 

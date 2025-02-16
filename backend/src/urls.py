@@ -14,10 +14,18 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.urls import path
-from .controller import stock_controller
+
+from .api.controller import gold_controller, market_controller
 
 urlpatterns = [
-    path('stock/quotes', stock_controller.stock_quotes, name='stock_quotes'),
-    path('stock/<str:index_code>', stock_controller.stock_index, name='stock_index'),
+    # 市场指数接口
+    path(
+        "api/market/<str:market>/<str:index_code>",
+        market_controller.market_index,
+        name="market_index",
+    ),
+    # 黄金指数接口
+    path("api/gold", gold_controller.gold_index, name="gold_index"),
 ]

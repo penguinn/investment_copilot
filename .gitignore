@@ -42,3 +42,7 @@ tmp/
 temp/
 .coverage
 htmlcov/
+
+
+
+docker-compose-local.yml

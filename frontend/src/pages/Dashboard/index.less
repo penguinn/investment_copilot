@@ -1,11 +1,472 @@
 .dashboard {
-  padding: 24px;
-  background: #f0f2f5;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
+/* AI 推荐窗口 */
+.aiCard {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  overflow: hidden;
+  
   :global {
-    .ant-card {
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+    .ant-card-body {
+      padding: 0;
     }
   }
-} 
+}
+
+.aiHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.aiTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #a78bfa;
+}
+
+.aiIcon {
+  font-size: 20px;
+}
+
+.aiBeta {
+  padding: 2px 8px;
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  font-size: 11px;
+  color: #c4b5fd;
+  font-weight: 500;
+}
+
+.aiContent {
+  padding: 20px;
+  min-height: 100px;
+}
+
+.aiMessage {
+  p {
+    margin: 0 0 8px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.aiHint {
+  color: var(--text-tertiary) !important;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.aiInputArea {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.aiInput {
+  flex: 1;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+  
+  &:focus {
+    border-color: var(--primary-color);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.aiSendBtn {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* 市场卡片通用样式 */
+.marketCard {
+  :global {
+    .ant-card-body {
+      padding: 20px;
+    }
+  }
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  
+  :global(.anticon) {
+    font-size: 18px;
+    color: var(--primary-color);
+  }
+}
+
+.refreshBtn {
+  margin-left: 4px;
+  color: var(--text-secondary) !important;
+  
+  &:hover {
+    color: var(--primary-color) !important;
+    background: var(--bg-tertiary) !important;
+  }
+  
+  :global(.anticon) {
+    font-size: 14px !important;
+  }
+}
+
+.marketTabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-tertiary);
+  padding: 4px;
+  border-radius: var(--radius-md);
+}
+
+.marketTab {
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    color: var(--text-primary);
+  }
+  
+  &.active {
+    background: var(--primary-color);
+    color: white;
+  }
+}
+
+/* 指数项 */
+.indexItem {
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  &.rise {
+    border-color: rgba(239, 68, 68, 0.3);
+    
+    .indexPrice, .indexChange {
+      color: var(--rise-color);
+    }
+  }
+  
+  &.fall {
+    border-color: rgba(34, 197, 94, 0.3);
+    
+    .indexPrice, .indexChange {
+      color: var(--fall-color);
+    }
+  }
+}
+
+.indexName {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.indexPrice {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  margin-bottom: 4px;
+}
+
+.indexChange {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  
+  .percent {
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    font-size: 12px;
+  }
+}
+
+/* 基金列表 */
+.fundList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fundItem {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.fundName {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.fundValue {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  margin-right: 16px;
+}
+
+.fundChange {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  min-width: 80px;
+  justify-content: flex-end;
+}
+
+.fundAvgChange {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.fundStats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  margin-left: auto;
+  
+  .rise {
+    color: var(--rise-color);
+    min-width: 50px;
+    text-align: right;
+  }
+  
+  .fall {
+    color: var(--fall-color);
+    min-width: 50px;
+    text-align: right;
+  }
+}
+
+/* 黄金卡片 */
+.goldCard {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, var(--bg-secondary) 100%) !important;
+}
+
+.goldItem {
+  padding: 16px;
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+  
+  &:hover {
+    border-color: rgba(251, 191, 36, 0.4);
+  }
+}
+
+.goldName {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 10px;
+}
+
+.goldPrice {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  margin-bottom: 4px;
+}
+
+.goldUnit {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+.goldChange {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+/* 期货项 */
+.futuresItem {
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  &.rise {
+    border-color: rgba(239, 68, 68, 0.3);
+    
+    .futuresPrice, .futuresChange {
+      color: var(--rise-color);
+    }
+  }
+  
+  &.fall {
+    border-color: rgba(34, 197, 94, 0.3);
+    
+    .futuresPrice, .futuresChange {
+      color: var(--fall-color);
+    }
+  }
+}
+
+.futuresHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.futuresName {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.futuresCode {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.futuresPrice {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  margin-bottom: 4px;
+}
+
+.futuresChange {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  
+  .percent {
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    font-size: 12px;
+  }
+}
+
+/* 涨跌颜色 */
+.rise {
+  color: var(--rise-color);
+}
+
+.fall {
+  color: var(--fall-color);
+}
+
+.neutral {
+  color: var(--text-secondary);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .marketTabs {
+    display: none;
+  }
+  
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}

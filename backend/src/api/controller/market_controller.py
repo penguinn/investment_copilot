@@ -1,13 +1,10 @@
-import json
 import logging
 from datetime import datetime
+from typing import Optional
 
-from asgiref.sync import async_to_sync
-from django.core.cache import cache
-from django.http import JsonResponse
-from rest_framework.decorators import api_view
-
-from ...service.market_service import MarketService
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
+from src.service.market_service import MarketService
 
 logger = logging.getLogger(__name__)
 
@@ -15,51 +12,55 @@ logger = logging.getLogger(__name__)
 MARKET_INDICES = {
     # A股市场
     "CN": {
-        "SSE": {"symbol": "sh000001", "name": "上证指数"},
-        "SZSE": {"symbol": "sz399001", "name": "深证成指"},
-        "ChiNext": {"symbol": "sz399006", "name": "创业板指"},
+        "SSE": {"name": "上证指数"},
+        "SZSE": {"name": "深证成指"},
+        "ChiNext": {"name": "创业板指"},
     },
     # 港股市场
     "HK": {
-        "HSI": {"symbol": "hkHSI", "name": "恒生指数"},
-        "HSCEI": {"symbol": "hkHSCEI", "name": "恒生国企指数"},
-        "HSTECH": {"symbol": "hkHSTECH", "name": "恒生科技指数"},
+        "HSI": {"name": "恒生指数"},
+        "HSCEI": {"name": "恒生国企指数"},
+        "HSTECH": {"name": "恒生科技指数"},
     },
     # 美股市场
     "US": {
-        "DJI": {"symbol": "DJI", "name": "道琼斯工业指数"},
-        "IXIC": {"symbol": "IXIC", "name": "纳斯达克综合指数"},
-        "SPX": {"symbol": "SPX", "name": "标普500指数"},
+        "DJI": {"name": "道琼斯"},
+        "IXIC": {"name": "纳斯达克"},
+        "SPX": {"name": "标普500"},
     },
 }
+
+# 创建路由器
+router = APIRouter(prefix="/api", tags=["市场指数"])
 
 # 创建服务实例
 market_service = MarketService()
 
 
-@api_view(["GET"])
-def market_index(request, market: str, index_code: str):
+@router.get("/market/{market}/{index_code}")
+async def market_index(
+    market: str,
+    index_code: str,
+    chart_type: str = Query("kline", description="图表类型 (kline/trend)"),
+    period: str = Query(
+        "day", description="时间周期 (1min/5min/15min/30min/60min/day/week/month)"
+    ),
+    start_time: Optional[str] = Query(None, description="开始时间"),
+    end_time: Optional[str] = Query(None, description="结束时间"),
+):
     """
     获取指定市场的指数数据
     :param market: 市场代码 (CN/HK/US)
     :param index_code: 指数代码
-    :query chart_type: 图表类型 (kline/trend)
-    :query period: 时间周期 (1min/5min/15min/30min/60min/day/week/month)
-    :query start_time: 开始时间
-    :query end_time: 结束时间
+    :param chart_type: 图表类型 (kline/trend)
+    :param period: 时间周期 (1min/5min/15min/30min/60min/day/week/month)
+    :param start_time: 开始时间
+    :param end_time: 结束时间
     """
     try:
-        # 获取请求参数
-        chart_type = request.GET.get("chart_type", "kline")  # kline 或 trend
-        period = request.GET.get("period", "day")  # 默认日K
-        start_time = request.GET.get("start_time")
-        end_time = request.GET.get("end_time")
-
         # 验证参数
         if chart_type not in ["kline", "trend"]:
-            return JsonResponse(
-                {"code": 1, "message": "Invalid chart type"}, status=400
-            )
+            raise HTTPException(status_code=400, detail="Invalid chart type")
 
         if period not in [
             "1min",
@@ -71,68 +72,60 @@ def market_index(request, market: str, index_code: str):
             "week",
             "month",
         ]:
-            return JsonResponse({"code": 1, "message": "Invalid period"}, status=400)
+            raise HTTPException(status_code=400, detail="Invalid period")
 
         if market not in MARKET_INDICES:
-            return JsonResponse({"code": 1, "message": "Invalid market"}, status=400)
+            raise HTTPException(status_code=400, detail="Invalid market")
 
         # 获取市场指数信息
         market_info = MARKET_INDICES[market]
         if index_code not in market_info:
-            return JsonResponse(
-                {"code": 1, "message": "Invalid index code"}, status=400
-            )
+            raise HTTPException(status_code=400, detail="Invalid index code")
 
         index_info = market_info[index_code]
-        symbol = index_info["symbol"]
 
         # 根据图表类型获取数据
         if chart_type == "kline":
             if start_time and end_time:
                 # 获取历史数据
-                data = async_to_sync(market_service.get_market_history)(
+                data = await market_service.get_market_history(
                     market=market,
-                    symbol=symbol,
+                    symbol=index_code,
                     start_time=start_time,
                     end_time=end_time,
                 )
             else:
                 # 获取最新数据
-                data = async_to_sync(market_service.get_market_data)(
-                    market=market, symbol=symbol, period=period
+                data = await market_service.get_market_data(
+                    market=market, symbol=index_code, period=period
                 )
         else:  # trend
             if not (start_time and end_time):
-                return JsonResponse(
-                    {
-                        "code": 1,
-                        "message": "start_time and end_time are required for trend chart",
-                    },
-                    status=400,
+                raise HTTPException(
+                    status_code=400,
+                    detail="start_time and end_time are required for trend chart",
                 )
             # 获取趋势数据
-            data = async_to_sync(market_service.get_market_trend)(
+            data = await market_service.get_market_trend(
                 market=market,
-                symbol=symbol,
+                symbol=index_code,
                 start_time=start_time,
                 end_time=end_time,
                 interval=period,
             )
 
-        return JsonResponse(
-            {
-                "code": 0,
-                "data": {
-                    "market": market,
-                    "symbol": symbol,
-                    "name": index_info["name"],
-                    "items": data,
-                },
-            }
-        )
+        return {
+            "code": 0,
+            "data": {
+                "market": market,
+                "symbol": index_code,
+                "name": index_info["name"],
+                "items": data,
+            },
+        }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get market index: {str(e)}", exc_info=True)
-        return JsonResponse(
-            {"code": 1, "message": f"获取市场指数失败: {str(e)}"}, status=500
-        )
+        raise HTTPException(status_code=500, detail=f"获取市场指数失败: {str(e)}")

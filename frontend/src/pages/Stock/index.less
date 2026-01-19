@@ -1,0 +1,160 @@
+.stockPage {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.titleSection {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.stockCount {
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+.actionSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.searchInput {
+  width: 280px;
+  
+  :global {
+    .ant-input-group-addon {
+      background: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+    }
+    
+    .ant-btn {
+      background: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+    }
+  }
+}
+
+.stockCard {
+  :global {
+    .ant-card-body {
+      padding: 0;
+    }
+  }
+}
+
+.stockTable {
+  :global {
+    .ant-table {
+      background: transparent !important;
+    }
+    
+    .ant-table-thead > tr > th {
+      background: rgba(51, 65, 85, 0.5) !important;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 14px 16px;
+    }
+    
+    .ant-table-tbody > tr > td {
+      padding: 16px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    }
+    
+    .ant-table-tbody > tr {
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &:hover > td {
+        background: rgba(59, 130, 246, 0.05) !important;
+      }
+    }
+  }
+}
+
+.stockInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stockName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: -apple-system, 'PingFang SC', sans-serif;
+}
+
+.stockCode {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.marketTag {
+  font-size: 10px;
+  padding: 0 4px;
+  line-height: 16px;
+  border-radius: 4px;
+}
+
+.price {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.changePercent {
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+:global {
+  .rise-text {
+    color: var(--rise-color);
+  }
+  
+  .fall-text {
+    color: var(--fall-color);
+  }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .actionSection {
+    width: 100%;
+    flex-direction: column;
+    
+    .searchInput {
+      width: 100%;
+    }
+    
+    button {
+      width: 100%;
+    }
+  }
+}

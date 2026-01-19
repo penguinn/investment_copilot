@@ -1,0 +1,169 @@
+.forexPage {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.overviewCards {
+  margin-bottom: 4px;
+}
+
+.rateCard {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: rgba(16, 185, 129, 0.4) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+  }
+  
+  :global {
+    .ant-card-body {
+      padding: 20px;
+    }
+  }
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #10b981;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.cardDesc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.cardBody {
+  :global {
+    .ant-statistic-content-suffix {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-left: 8px;
+    }
+  }
+}
+
+.changeInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.bidAsk {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.listCard {
+  :global {
+    .ant-card-body {
+      padding: 16px 24px;
+    }
+    
+    .ant-tabs-nav {
+      margin-bottom: 16px;
+    }
+  }
+}
+
+.forexTable {
+  :global {
+    .ant-table {
+      background: transparent !important;
+    }
+    
+    .ant-table-thead > tr > th {
+      background: rgba(51, 65, 85, 0.5) !important;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 14px 16px;
+    }
+    
+    .ant-table-tbody > tr > td {
+      padding: 16px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    }
+    
+    .ant-table-tbody > tr {
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &:hover > td {
+        background: rgba(16, 185, 129, 0.05) !important;
+      }
+    }
+  }
+}
+
+.forexInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.forexName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.forexDesc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-family: -apple-system, 'PingFang SC', sans-serif;
+}
+
+.price {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.changePercent {
+  font-weight: 600;
+}
+
+:global {
+  .rise-text {
+    color: var(--rise-color);
+  }
+  
+  .fall-text {
+    color: var(--fall-color);
+  }
+}

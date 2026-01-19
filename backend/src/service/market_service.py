@@ -1,40 +1,42 @@
+"""
+市场指数服务
+"""
+
 import logging
 from typing import Any, Dict, List
 
-from ..infrastructure.client.akshare.market import MarketClient
-from ..infrastructure.db.redis.market import MarketCache
-from ..infrastructure.db.timescale.market import MarketRepository
+from src.config import CACHE_TTL_DAILY, CACHE_TTL_REALTIME
+from src.infrastructure.client.akshare.market import MarketClient
+from src.service.base import BaseService
 
 logger = logging.getLogger(__name__)
 
 
-class MarketService:
-    """市场服务"""
+class MarketService(BaseService):
+    """市场指数服务"""
 
     def __init__(self):
+        super().__init__("market")
         self.client = MarketClient()
-        self.repository = MarketRepository()
-        self.cache = MarketCache()
 
     async def get_market_data(
         self, market: str, symbol: str, period: str, use_cache: bool = True
     ) -> Dict[str, Any]:
-        """获取市场数据"""
+        """获取市场指数数据"""
+        cache_key = self._cache_key("index", market, symbol, period)
+
+        # 尝试从缓存获取
         if use_cache:
-            # 先从缓存获取
-            cached_data = await self.cache.get_latest(market, symbol)
+            cached_data = await self._get_from_cache(cache_key)
             if cached_data:
                 return cached_data
 
         # 从API获取
-        data = await self.client.request(market=market, symbol=symbol, period=period)
+        data = self.client.get_market_index(market=market, symbol=symbol, period=period)
 
-        # 保存到时序数据库
-        await self.repository.save(data)
-
-        # 设置缓存
-        if use_cache:
-            await self.cache.set_latest(market, symbol, data)
+        # 始终写入缓存（无论 use_cache 是 True 还是 False）
+        if data:
+            await self._set_to_cache(cache_key, data, CACHE_TTL_REALTIME)
 
         return data
 
@@ -47,39 +49,21 @@ class MarketService:
         use_cache: bool = True,
     ) -> List[Dict[str, Any]]:
         """获取历史数据"""
+        cache_key = self._cache_key("history", market, symbol, start_time, end_time)
+
         if use_cache:
-            # 先从缓存获取
-            cached_data = await self.cache.get_history(
-                market, symbol, start_time, end_time
-            )
+            cached_data = await self._get_from_cache(cache_key)
             if cached_data:
                 return cached_data
 
-        # 从时序数据库获取
-        data = await self.repository.get_history(
-            start_time=start_time, end_time=end_time, market=market, symbol=symbol
-        )
+        # 从 API 获取历史数据
+        # TODO: 实现历史数据获取
+        data = []
 
-        # 格式化数据
-        formatted_data = [
-            {
-                "time": item.time.strftime("%Y-%m-%d %H:%M:%S"),
-                "open": float(item.open),
-                "high": float(item.high),
-                "low": float(item.low),
-                "close": float(item.close),
-                "volume": float(item.volume),
-            }
-            for item in data
-        ]
+        if use_cache and data:
+            await self._set_to_cache(cache_key, data, CACHE_TTL_DAILY)
 
-        # 设置缓存
-        if use_cache:
-            await self.cache.set_history(
-                market, symbol, start_time, end_time, formatted_data
-            )
-
-        return formatted_data
+        return data
 
     async def get_market_trend(
         self,
@@ -91,21 +75,19 @@ class MarketService:
         use_cache: bool = True,
     ) -> List[Dict[str, Any]]:
         """获取市场趋势数据"""
-        # 从时序数据库获取聚合数据
-        data = await self.repository.get_by_time_bucket(
-            start_time=start_time,
-            end_time=end_time,
-            interval=interval,
-            market=market,
-            symbol=symbol,
+        cache_key = self._cache_key(
+            "trend", market, symbol, start_time, end_time, interval
         )
 
-        # 格式化数据
-        return [
-            {
-                "time": item.time_bucket.strftime("%Y-%m-%d %H:%M:%S"),
-                "price": float(item.avg_price),
-                "volume": float(item.volume_sum),
-            }
-            for item in data
-        ]
+        if use_cache:
+            cached_data = await self._get_from_cache(cache_key)
+            if cached_data:
+                return cached_data
+
+        # TODO: 实现趋势数据获取
+        data = []
+
+        if use_cache and data:
+            await self._set_to_cache(cache_key, data, CACHE_TTL_DAILY)
+
+        return data

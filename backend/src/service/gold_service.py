@@ -1,113 +1,136 @@
+"""
+黄金服务
+"""
 import logging
-from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-import pytz
-
-from ..infrastructure.client.akshare.gold import GoldClient
-from ..infrastructure.db.redis.gold import GoldCache
-from ..infrastructure.db.timescale.gold import GoldRepository
+from src.service.base import BaseService
+from src.config import CACHE_TTL_REALTIME, CACHE_TTL_DAILY
+from src.infrastructure.client.akshare.gold import GoldClient
+from src.infrastructure.db.models.gold import Gold, GoldPrice, GoldWatchlist
+from src.infrastructure.db.repository.base import TimeSeriesRepository, WatchlistRepository
 
 logger = logging.getLogger(__name__)
 
 
-class GoldService:
+class GoldService(BaseService):
     """黄金服务"""
 
     def __init__(self):
+        super().__init__("gold")
         self.client = GoldClient()
-        self.repository = GoldRepository()
-        self.cache = GoldCache()
+        self.price_repo = TimeSeriesRepository(GoldPrice)
+        self.watchlist_repo = WatchlistRepository(GoldWatchlist)
 
-    async def get_gold_data(
-        self, gold_indices: Dict[str, Dict[str, str]], use_cache: bool = True
-    ) -> Dict[str, Dict[str, Any]]:
-        """获取黄金数据"""
-        result = {}
+    async def get_realtime_prices(self, use_cache: bool = True) -> List[Dict[str, Any]]:
+        """获取黄金实时行情"""
+        cache_key = self._cache_key("realtime")
+        
+        if use_cache:
+            cached = await self._get_from_cache(cache_key)
+            if cached:
+                return cached
 
-        for symbol in gold_indices.keys():
-            if use_cache:
-                # 先从缓存获取
-                cached_data = await self.cache.get_latest(symbol)
-                if cached_data:
-                    result[symbol] = cached_data
-                    continue
+        data = self.client.get_gold_realtime()
+        
+        if data:
+            try:
+                await self.price_repo.save_quotes(data)
+            except Exception as e:
+                logger.warning(f"Failed to save gold prices: {e}")
+            
+            # 始终写入缓存
+            await self._set_to_cache(cache_key, data, CACHE_TTL_REALTIME)
+        
+        return data
 
-        # 如果有未缓存的数据，从API获取
-        if len(result) < len(gold_indices):
-            api_data = await self.client.request(gold_indices=gold_indices)
-
-            # 保存到时序数据库并更新缓存
-            for symbol, data in api_data.items():
-                if symbol not in result:  # 只处理未缓存的数据
-                    # 为数据库保存准备带时区的datetime对象
-                    db_data = data.copy()
-                    db_data["time"] = datetime.strptime(
-                        data["time"], "%Y-%m-%d %H:%M:%S"
-                    ).replace(tzinfo=pytz.timezone("Asia/Shanghai"))
-
-                    # 保存到数据库
-                    await self.repository.save(db_data)
-
-                    if use_cache:
-                        # 缓存和返回使用原始数据（带字符串时间）
-                        await self.cache.set_latest(symbol, data)
-                    result[symbol] = data
-
-        return result
+    async def get_gold_detail(self, code: str) -> Optional[Dict[str, Any]]:
+        """获取黄金品种详情"""
+        data = await self.get_realtime_prices()
+        for item in data:
+            if item["code"] == code:
+                return item
+        return None
 
     async def get_gold_history(
-        self, symbol: str, start_time: str, end_time: str, use_cache: bool = True
+        self,
+        code: str = "AU9999",
+        start_date: str = None,
+        end_date: str = None
     ) -> List[Dict[str, Any]]:
-        """获取历史数据"""
-        if use_cache:
-            # 先从缓存获取
-            cached_data = await self.cache.get_history(symbol, start_time, end_time)
-            if cached_data:
-                return cached_data
+        """获取黄金历史数据"""
+        cache_key = self._cache_key("history", code, start_date, end_date)
+        
+        cached = await self._get_from_cache(cache_key)
+        if cached:
+            return cached
 
-        # 从时序数据库获取
-        data = await self.repository.get_history(
-            start_time=start_time, end_time=end_time, symbol=symbol
+        data = self.client.get_gold_history(code, start_date, end_date)
+        
+        if data:
+            await self._set_to_cache(cache_key, data, CACHE_TTL_DAILY)
+        
+        return data
+
+    # ========== 自选相关 ==========
+    
+    async def get_watchlist(self, user_id: str = "default") -> List[Dict[str, Any]]:
+        """获取自选黄金列表"""
+        cache_key = self._cache_key("watchlist", user_id)
+        
+        cached = await self._get_from_cache(cache_key)
+        if cached:
+            return cached
+
+        watchlist = await self.watchlist_repo.get_by_user(user_id)
+        
+        if not watchlist:
+            return []
+
+        prices = await self.get_realtime_prices()
+        price_map = {p["code"]: p for p in prices}
+        
+        result = []
+        for item in watchlist:
+            price = price_map.get(item.code, {})
+            result.append({
+                "code": item.code,
+                "name": item.name or price.get("name", ""),
+                "sort_order": item.sort_order,
+                "notes": item.notes,
+                **{k: v for k, v in price.items() if k not in ["code", "name"]},
+            })
+        
+        await self._set_to_cache(cache_key, result, CACHE_TTL_REALTIME)
+        return result
+
+    async def add_to_watchlist(
+        self,
+        code: str,
+        user_id: str = "default",
+        name: str = None
+    ) -> Dict[str, Any]:
+        """添加到自选"""
+        item = await self.watchlist_repo.add_to_watchlist(
+            user_id=user_id,
+            code=code,
+            name=name
         )
+        
+        await self._delete_from_cache(self._cache_key("watchlist", user_id))
+        
+        return {
+            "id": item.id,
+            "code": item.code,
+            "name": item.name,
+        }
 
-        # 格式化数据
-        formatted_data = [
-            {
-                "time": item.time.strftime("%Y-%m-%d %H:%M:%S"),
-                "price": float(item.price),
-                "open": float(item.open),
-                "high": float(item.high),
-                "low": float(item.low),
-                "close": float(item.close),
-                "change": float(item.change),
-                "change_percent": float(item.change_percent),
-            }
-            for item in data
-        ]
-
-        # 设置缓存
-        if use_cache:
-            await self.cache.set_history(symbol, start_time, end_time, formatted_data)
-
-        return formatted_data
-
-    async def get_gold_trend(
-        self, symbol: str, start_time: str, end_time: str, interval: str
-    ) -> List[Dict[str, Any]]:
-        """获取黄金趋势数据"""
-        # 从时序数据库获取聚合数据
-        data = await self.repository.get_by_time_bucket(
-            start_time=start_time, end_time=end_time, interval=interval, symbol=symbol
-        )
-
-        # 格式化数据
-        return [
-            {
-                "time": item.time_bucket.strftime("%Y-%m-%d %H:%M:%S"),
-                "price": float(item.avg_price),
-                "high": float(item.max_price),
-                "low": float(item.min_price),
-            }
-            for item in data
-        ]
+    async def remove_from_watchlist(
+        self,
+        code: str,
+        user_id: str = "default"
+    ) -> bool:
+        """从自选移除"""
+        result = await self.watchlist_repo.remove_from_watchlist(user_id, code)
+        await self._delete_from_cache(self._cache_key("watchlist", user_id))
+        return result

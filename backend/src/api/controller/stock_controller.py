@@ -84,10 +84,13 @@ async def get_stock_history(
 
 
 @router.get("/search")
-async def search_stock(keyword: str = Query(..., description="搜索关键词")):
+async def search_stock(
+    keyword: str = Query(..., description="搜索关键词"),
+    market: Optional[str] = Query(None, description="市场过滤 (CN/HK/US)"),
+):
     """搜索股票"""
     try:
-        data = await stock_service.search_stock(keyword)
+        data = await stock_service.search_stock(keyword, market)
         return {"code": 0, "data": data, "message": "success"}
     except Exception as e:
         logger.error(f"Failed to search stock: {e}")
@@ -98,10 +101,13 @@ async def search_stock(keyword: str = Query(..., description="搜索关键词"))
 
 
 @router.get("/watchlist")
-async def get_watchlist(user_id: str = Query("default", description="用户ID")):
+async def get_watchlist(
+    user_id: str = Query("default", description="用户ID"),
+    market: Optional[str] = Query(None, description="市场过滤 (CN/HK/US)"),
+):
     """获取自选股列表"""
     try:
-        data = await stock_service.get_watchlist(user_id)
+        data = await stock_service.get_watchlist(user_id, market)
         return {"code": 0, "data": data, "message": "success"}
     except Exception as e:
         logger.error(f"Failed to get watchlist: {e}")

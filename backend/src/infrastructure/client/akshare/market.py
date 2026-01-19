@@ -283,3 +283,121 @@ class MarketClient(BaseClient):
             logger.error(f"Failed to get US market data for {symbol}: {e}")
         
         return None
+
+    def get_index_history(self, market: str, symbol: str, days: int = 30) -> List[Dict]:
+        """获取指数历史数据（用于折线图）"""
+        try:
+            if market == "CN":
+                return self._get_cn_index_history(symbol, days)
+            elif market == "HK":
+                return self._get_hk_index_history(symbol, days)
+            elif market == "US":
+                return self._get_us_index_history(symbol, days)
+            else:
+                logger.error(f"Unsupported market: {market}")
+                return []
+        except Exception as e:
+            logger.error(f"Failed to get index history for {market}/{symbol}: {e}")
+            return []
+
+    def _get_cn_index_history(self, symbol: str, days: int) -> List[Dict]:
+        """获取A股指数历史数据"""
+        symbol_map = {
+            "SSE": "000001",
+            "SZSE": "399001",
+            "ChiNext": "399006",
+        }
+        
+        actual_code = symbol_map.get(symbol, symbol)
+        daily_symbol = f"sh{actual_code}" if symbol == "SSE" else f"sz{actual_code}"
+        
+        try:
+            df = ak.stock_zh_index_daily(symbol=daily_symbol)
+            if df is not None and not df.empty:
+                # 取最近 N 天
+                df = df.tail(days)
+                result = []
+                for _, row in df.iterrows():
+                    date_val = row.get("date", "")
+                    if hasattr(date_val, "strftime"):
+                        date_str = date_val.strftime("%m/%d")
+                    else:
+                        date_str = str(date_val)[-5:] if len(str(date_val)) >= 5 else str(date_val)
+                    
+                    result.append({
+                        "date": date_str,
+                        "close": round(float(row.get("close", 0) or 0), 2),
+                        "open": round(float(row.get("open", 0) or 0), 2),
+                        "high": round(float(row.get("high", 0) or 0), 2),
+                        "low": round(float(row.get("low", 0) or 0), 2),
+                        "volume": float(row.get("volume", 0) or 0),
+                    })
+                return result
+        except Exception as e:
+            logger.error(f"Failed to get CN index history for {symbol}: {e}")
+        
+        return []
+
+    def _get_hk_index_history(self, symbol: str, days: int) -> List[Dict]:
+        """获取港股指数历史数据"""
+        try:
+            df = ak.stock_hk_index_daily_sina(symbol=symbol)
+            if df is not None and not df.empty:
+                df = df.tail(days)
+                result = []
+                for _, row in df.iterrows():
+                    date_val = row.get("date", "")
+                    if hasattr(date_val, "strftime"):
+                        date_str = date_val.strftime("%m/%d")
+                    else:
+                        date_str = str(date_val)[-5:] if len(str(date_val)) >= 5 else str(date_val)
+                    
+                    result.append({
+                        "date": date_str,
+                        "close": round(float(row.get("close", 0) or 0), 2),
+                        "open": round(float(row.get("open", 0) or 0), 2),
+                        "high": round(float(row.get("high", 0) or 0), 2),
+                        "low": round(float(row.get("low", 0) or 0), 2),
+                        "volume": float(row.get("volume", 0) or 0),
+                    })
+                return result
+        except Exception as e:
+            logger.error(f"Failed to get HK index history for {symbol}: {e}")
+        
+        return []
+
+    def _get_us_index_history(self, symbol: str, days: int) -> List[Dict]:
+        """获取美股指数历史数据"""
+        symbol_map = {
+            "DJI": ".DJI",
+            "IXIC": ".IXIC",
+            "SPX": ".INX",
+        }
+        
+        sina_symbol = symbol_map.get(symbol, f".{symbol}")
+        
+        try:
+            df = ak.index_us_stock_sina(symbol=sina_symbol)
+            if df is not None and not df.empty:
+                df = df.tail(days)
+                result = []
+                for _, row in df.iterrows():
+                    date_val = row.get("date", "")
+                    if hasattr(date_val, "strftime"):
+                        date_str = date_val.strftime("%m/%d")
+                    else:
+                        date_str = str(date_val)[-5:] if len(str(date_val)) >= 5 else str(date_val)
+                    
+                    result.append({
+                        "date": date_str,
+                        "close": round(float(row.get("close", 0) or 0), 2),
+                        "open": round(float(row.get("open", 0) or 0), 2),
+                        "high": round(float(row.get("high", 0) or 0), 2),
+                        "low": round(float(row.get("low", 0) or 0), 2),
+                        "volume": float(row.get("volume", 0) or 0),
+                    })
+                return result
+        except Exception as e:
+            logger.error(f"Failed to get US index history for {symbol}: {e}")
+        
+        return []

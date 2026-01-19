@@ -1,61 +1,219 @@
 .stockPage {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
-.pageHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.titleSection {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.pageTitle {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.stockCount {
-  font-size: 14px;
-  color: var(--text-tertiary);
-}
-
-.actionSection {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.searchInput {
-  width: 280px;
-  
+// ========== 市场 Tab ==========
+.marketTabs {
   :global {
-    .ant-input-group-addon {
-      background: var(--primary-color) !important;
-      border-color: var(--primary-color) !important;
+    .ant-tabs-nav {
+      margin-bottom: 0;
+      
+      &::before {
+        border-bottom: 1px solid var(--border-color);
+      }
     }
     
-    .ant-btn {
-      background: var(--primary-color) !important;
-      border-color: var(--primary-color) !important;
+    .ant-tabs-tab {
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.3s;
+      
+      &:hover {
+        color: var(--primary-color);
+      }
+      
+      &.ant-tabs-tab-active {
+        .ant-tabs-tab-btn {
+          color: var(--primary-color);
+          font-weight: 600;
+        }
+      }
+    }
+    
+    .ant-tabs-ink-bar {
+      background: var(--primary-color);
+      height: 3px;
+      border-radius: 2px;
     }
   }
 }
 
-.stockCard {
+.tabLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// ========== 指数概览 ==========
+.indicesSection {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+// ========== 时间范围选择器 ==========
+.timeRangeSelect {
+  :global {
+    .ant-segmented {
+      background: var(--bg-tertiary);
+      padding: 2px;
+    }
+    
+    .ant-segmented-item {
+      color: var(--text-secondary);
+      font-size: 13px;
+      min-width: 50px;
+      
+      &:hover {
+        color: var(--text-primary);
+      }
+    }
+    
+    .ant-segmented-item-selected {
+      background: var(--primary-color);
+      color: #fff;
+      
+      &:hover {
+        color: #fff;
+      }
+    }
+    
+    .ant-segmented-thumb {
+      background: var(--primary-color);
+    }
+  }
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.stockCount {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  margin-left: 8px;
+}
+
+.indicesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.indexCard {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s;
+  
+  &:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  :global {
+    .ant-card-body {
+      padding: 16px;
+    }
+  }
+}
+
+.indexHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.indexInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.indexName {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.indexPrice {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.indexChange {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.indexChart {
+  height: 120px;
+  width: 100%;
+}
+
+// ========== 涨跌颜色 ==========
+.rise {
+  color: var(--rise-color);
+}
+
+.fall {
+  color: var(--fall-color);
+}
+
+.flat {
+  color: var(--text-secondary);
+}
+
+// ========== 自选股列表 ==========
+.watchlistSection {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.watchlistCard {
+  background: transparent;
+  
   :global {
     .ant-card-body {
       padding: 0;
+    }
+    
+    .ant-empty {
+      padding: 40px 0;
     }
   }
 }
@@ -71,11 +229,13 @@
       font-weight: 600;
       font-size: 13px;
       padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
     }
     
     .ant-table-tbody > tr > td {
-      padding: 16px;
+      padding: 14px 16px;
       font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      border-bottom: 1px solid var(--border-color);
     }
     
     .ant-table-tbody > tr {
@@ -128,33 +288,155 @@
   border-radius: var(--radius-sm);
 }
 
-:global {
-  .rise-text {
-    color: var(--rise-color);
-  }
+// ========== 迷你走势图 ==========
+.miniChart {
+  display: block;
+}
+
+.miniChartPlaceholder {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+// ========== 今日高低 ==========
+.highLow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
   
-  .fall-text {
-    color: var(--fall-color);
+  .divider {
+    color: var(--text-tertiary);
+    font-size: 12px;
   }
 }
 
-/* 响应式 */
-@media (max-width: 768px) {
-  .pageHeader {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .actionSection {
-    width: 100%;
-    flex-direction: column;
-    
-    .searchInput {
-      width: 100%;
+// ========== 辅助文字 ==========
+.dimText {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+// ========== 搜索弹窗 ==========
+.searchModal {
+  :global {
+    .ant-modal-content {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
     }
     
-    button {
-      width: 100%;
+    .ant-modal-header {
+      background: transparent;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .ant-modal-title {
+      color: var(--text-primary);
+    }
+  }
+}
+
+.searchInput {
+  margin-bottom: 16px;
+  
+  :global {
+    .ant-input-group-addon {
+      background: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+    }
+    
+    .ant-btn {
+      background: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+    }
+  }
+}
+
+.searchResults {
+  max-height: 400px;
+  overflow-y: auto;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+    
+    &:hover {
+      background: var(--text-tertiary);
+    }
+  }
+}
+
+.searchResultItem {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  transition: background 0.2s;
+  
+  &:hover {
+    background: var(--bg-tertiary);
+  }
+  
+  :global {
+    .ant-list-item-meta-title {
+      color: var(--text-primary);
+    }
+    
+    .ant-list-item-meta-description {
+      color: var(--text-tertiary);
+    }
+  }
+}
+
+.resultTag {
+  margin-left: 8px;
+  font-size: 10px;
+}
+
+.searchTip {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+// ========== 响应式 ==========
+@media (max-width: 1200px) {
+  .indicesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .indicesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .marketTabs {
+    :global {
+      .ant-tabs-tab {
+        padding: 10px 12px;
+        font-size: 14px;
+      }
     }
   }
 }

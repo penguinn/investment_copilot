@@ -24,8 +24,12 @@ DB_PASSWORD = os.environ.get("DB_PASSWORD", "postgres")
 DB_NAME = os.environ.get("DB_NAME", "stockdb")
 
 # 构建数据库URL
-DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-DATABASE_URL_SYNC = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = (
+    f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
+DATABASE_URL_SYNC = (
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
 
 # 缓存设置
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
@@ -40,7 +44,8 @@ REDIS_RETRY = True
 CACHE_TTL_REALTIME = 30  # 实时数据缓存30秒
 CACHE_TTL_MINUTE = 60  # 分钟数据缓存1分钟
 CACHE_TTL_DAILY = 300  # 日数据缓存5分钟
-CACHE_TTL_WATCHLIST = 3600  # 自选列表缓存1小时
+CACHE_TTL_HISTORY = 3600 * 24  # 历史数据缓存1天（历史数据不会变化）
+CACHE_TTL_WATCHLIST = 3600 * 24  # 自选列表缓存1天
 
 # 日志设置
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")

@@ -5,7 +5,7 @@
 import logging
 from typing import Any, Dict, List
 
-from src.config import CACHE_TTL_DAILY, CACHE_TTL_REALTIME
+from src.config import CACHE_TTL_DAILY, CACHE_TTL_HISTORY, CACHE_TTL_REALTIME
 from src.infrastructure.client.akshare.market import MarketClient
 from src.service.base import BaseService
 
@@ -89,5 +89,29 @@ class MarketService(BaseService):
 
         if use_cache and data:
             await self._set_to_cache(cache_key, data, CACHE_TTL_DAILY)
+
+        return data
+
+    async def get_index_history(
+        self,
+        market: str,
+        symbol: str,
+        days: int = 30,
+        use_cache: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """获取指数历史数据（用于折线图）"""
+        cache_key = self._cache_key("index_history", market, symbol, str(days))
+
+        if use_cache:
+            cached_data = await self._get_from_cache(cache_key)
+            if cached_data:
+                return cached_data
+
+        # 从 API 获取历史数据
+        data = self.client.get_index_history(market=market, symbol=symbol, days=days)
+
+        if data:
+            # 历史数据缓存1小时，因为历史数据不会变化
+            await self._set_to_cache(cache_key, data, CACHE_TTL_HISTORY)
 
         return data

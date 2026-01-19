@@ -37,6 +37,46 @@ router = APIRouter(prefix="/api", tags=["市场指数"])
 market_service = MarketService()
 
 
+@router.get("/market/{market}/{index_code}/history")
+async def market_index_history(
+    market: str,
+    index_code: str,
+    days: int = Query(30, description="获取天数，默认30天"),
+):
+    """
+    获取指数历史数据（用于折线图）
+    :param market: 市场代码 (CN/HK/US)
+    :param index_code: 指数代码
+    :param days: 获取天数
+    """
+    try:
+        if market not in MARKET_INDICES:
+            raise HTTPException(status_code=400, detail="Invalid market")
+
+        market_info = MARKET_INDICES[market]
+        if index_code not in market_info:
+            raise HTTPException(status_code=400, detail="Invalid index code")
+
+        index_info = market_info[index_code]
+
+        # 获取历史数据
+        data = await market_service.get_index_history(
+            market=market, symbol=index_code, days=days
+        )
+
+        return {
+            "code": 0,
+            "data": data,
+            "message": "success",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get market index history: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取指数历史数据失败: {str(e)}")
+
+
 @router.get("/market/{market}/{index_code}")
 async def market_index(
     market: str,

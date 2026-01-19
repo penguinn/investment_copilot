@@ -87,3 +87,70 @@ export const futuresApi = {
     return request<any[]>(`/api/futures/realtime${query ? '?' + query : ''}`);
   },
 };
+
+// 股票 API
+export const stockApi = {
+  // 获取股票实时行情
+  getRealtime: async (codes?: string[], limit?: number) => {
+    const params = new URLSearchParams();
+    if (codes && codes.length > 0) params.append('codes', codes.join(','));
+    if (limit) params.append('limit', String(limit));
+    const query = params.toString();
+    return request<any[]>(`/api/stock/realtime${query ? '?' + query : ''}`);
+  },
+
+  // 获取股票详情
+  getDetail: async (code: string) => {
+    return request<any>(`/api/stock/detail/${code}`);
+  },
+
+  // 获取股票历史数据
+  getHistory: async (code: string, period?: string, startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (period) params.append('period', period);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    const query = params.toString();
+    return request<any[]>(`/api/stock/history/${code}${query ? '?' + query : ''}`);
+  },
+
+  // 获取指数历史数据（用于折线图）
+  getIndexHistory: async (market: string, symbol: string, days?: number) => {
+    const params = new URLSearchParams();
+    if (days) params.append('days', String(days));
+    const query = params.toString();
+    return request<any[]>(`/api/market/${market}/${symbol}/history${query ? '?' + query : ''}`);
+  },
+
+  // 搜索股票
+  search: async (keyword: string, market?: string) => {
+    const params = new URLSearchParams();
+    params.append('keyword', keyword);
+    if (market) params.append('market', market);
+    const query = params.toString();
+    return request<any[]>(`/api/stock/search?${query}`);
+  },
+
+  // 获取自选股列表
+  getWatchlist: async (market?: string) => {
+    const params = new URLSearchParams();
+    if (market) params.append('market', market);
+    const query = params.toString();
+    return request<any[]>(`/api/stock/watchlist${query ? '?' + query : ''}`);
+  },
+
+  // 添加自选股
+  addToWatchlist: async (code: string, name?: string, market?: string) => {
+    return request<any>('/api/stock/watchlist', {
+      method: 'POST',
+      body: JSON.stringify({ code, name, market: market || 'CN' }),
+    });
+  },
+
+  // 移除自选股
+  removeFromWatchlist: async (code: string) => {
+    return request<any>(`/api/stock/watchlist/${code}`, {
+      method: 'DELETE',
+    });
+  },
+};

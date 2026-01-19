@@ -294,3 +294,15 @@ class WatchlistRepository(BaseRepository[T]):
                 )
             )
             return result.scalar_one_or_none() is not None
+
+    async def get_all_users(self) -> List[str]:
+        """获取所有有自选记录的用户ID"""
+        async with get_db_session() as session:
+            result = await session.execute(
+                select(self.model.user_id).distinct()
+            )
+            users = [row[0] for row in result.fetchall()]
+            # 确保至少返回默认用户
+            if "default" not in users:
+                users.append("default")
+            return users

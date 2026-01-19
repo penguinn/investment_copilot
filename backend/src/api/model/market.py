@@ -1,36 +1,28 @@
-from django.db import models
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, Field
 
 
-class MarketIndex(models.Model):
+class MarketIndexBase(BaseModel):
+    """市场指数基础模型"""
+
+    symbol: str = Field(..., description="指数代码")
+    market: str = Field(..., description="市场代码")
+    name: str = Field(..., description="指数名称")
+    time: datetime = Field(..., description="时间")
+    open: float = Field(..., description="开盘价")
+    high: float = Field(..., description="最高价")
+    low: float = Field(..., description="最低价")
+    close: float = Field(..., description="收盘价")
+    volume: float = Field(..., description="成交量")
+    change: Optional[float] = Field(None, description="涨跌额")
+    change_percent: Optional[float] = Field(None, description="涨跌幅")
+
+
+class MarketIndex(MarketIndexBase):
     """市场指数模型"""
 
-    MARKET_CHOICES = [
-        ("CN", "China A-Share"),
-        ("HK", "Hong Kong"),
-        ("US", "United States"),
-        ("GOLD", "Gold"),
-    ]
+    id: Optional[int] = Field(None, description="ID")
 
-    symbol = models.CharField(max_length=10, help_text="指数代码")
-    market = models.CharField(max_length=10, help_text="市场代码")
-    name = models.CharField(max_length=50, help_text="指数名称")
-    time = models.DateTimeField(help_text="时间")
-    open = models.DecimalField(max_digits=10, decimal_places=2, help_text="开盘价")
-    high = models.DecimalField(max_digits=10, decimal_places=2, help_text="最高价")
-    low = models.DecimalField(max_digits=10, decimal_places=2, help_text="最低价")
-    close = models.DecimalField(max_digits=10, decimal_places=2, help_text="收盘价")
-    volume = models.DecimalField(max_digits=20, decimal_places=2, help_text="成交量")
-    change = models.DecimalField(max_digits=10, decimal_places=2, null=True)  # 涨跌额
-    change_percent = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True
-    )  # 涨跌幅
-
-    class Meta:
-        db_table = "market_index"
-        indexes = [
-            models.Index(fields=["market", "symbol", "time"]),
-        ]
-        unique_together = ("symbol", "time")
-
-    def __str__(self):
-        return f"{self.name} ({self.symbol})"
+    class Config:
+        orm_mode = True

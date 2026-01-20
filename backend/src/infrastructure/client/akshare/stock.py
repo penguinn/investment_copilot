@@ -172,58 +172,61 @@ class StockClient(BaseClient):
     def get_single_stock_realtime(self, code: str) -> Optional[Dict[str, Any]]:
         """
         获取单个股票的实时数据
-        使用 stock_zh_a_daily 获取个股历史数据（包含最新价格）
+        使用新浪实时数据接口
         """
+        import requests
+
         now = datetime.now()
+        symbol = self._get_stock_symbol_with_prefix(code)
 
-        # 获取股票名称
-        stock_list = self._get_stock_list_cached()
-        name = ""
-        if not stock_list.empty:
-            match = stock_list[stock_list["code"] == code]
-            if not match.empty:
-                name = match.iloc[0]["name"]
-
-        # 使用 stock_zh_a_daily 获取历史数据（需要带前缀）
         try:
-            symbol = self._get_stock_symbol_with_prefix(code)
-            df = ak.stock_zh_a_daily(symbol=symbol, adjust="qfq")
+            # 使用新浪实时数据接口
+            url = f"https://hq.sinajs.cn/list={symbol}"
+            headers = {"Referer": "https://finance.sina.com.cn"}
+            resp = requests.get(url, headers=headers, timeout=10)
 
-            if df is not None and not df.empty:
-                latest = df.iloc[-1]
-                prev = df.iloc[-2] if len(df) > 1 else latest
+            if resp.status_code == 200 and "=" in resp.text:
+                # 解析数据: var hq_str_sh600580="名称,今开,昨收,最新价,最高,最低,买入,卖出,成交量,成交额,..."
+                data_str = resp.text.split("=")[1].strip().strip('"').strip(";")
+                parts = data_str.split(",")
 
-                close = float(latest.get("close", 0))
-                prev_close = float(prev.get("close", 0))
-                change = close - prev_close if prev_close else 0
-                change_percent = (change / prev_close * 100) if prev_close else 0
+                if len(parts) >= 10 and parts[0]:
+                    name = parts[0]
+                    open_price = float(parts[1]) if parts[1] else 0
+                    prev_close = float(parts[2]) if parts[2] else 0
+                    close = float(parts[3]) if parts[3] else 0
+                    high = float(parts[4]) if parts[4] else 0
+                    low = float(parts[5]) if parts[5] else 0
+                    volume = int(float(parts[8])) if parts[8] else 0
+                    amount = float(parts[9]) if parts[9] else 0
 
-                # 获取估值数据
-                valuation = self._get_stock_valuation(code)
+                    change = close - prev_close if prev_close else 0
+                    change_percent = (change / prev_close * 100) if prev_close else 0
 
-                return {
-                    "time": now,
-                    "code": code,
-                    "market": "CN",
-                    "name": name,
-                    "open": float(latest.get("open", 0)),
-                    "high": float(latest.get("high", 0)),
-                    "low": float(latest.get("low", 0)),
-                    "close": close,
-                    "volume": int(latest.get("volume", 0)),
-                    "amount": float(latest.get("amount", 0)),
-                    "change": round(change, 2),
-                    "change_percent": round(change_percent, 2),
-                    "turnover": float(latest.get("turnover", 0) or 0),
-                    "pe_ratio": valuation["pe_ratio"],
-                    "pb_ratio": valuation["pb_ratio"],
-                    "total_value": valuation["total_value"],
-                    "circulating_value": 0,
-                }
+                    # 获取估值数据
+                    valuation = self._get_stock_valuation(code)
+
+                    return {
+                        "time": now,
+                        "code": code,
+                        "market": "CN",
+                        "name": name,
+                        "open": open_price,
+                        "high": high,
+                        "low": low,
+                        "close": close,
+                        "volume": volume,
+                        "amount": amount,
+                        "change": round(change, 2),
+                        "change_percent": round(change_percent, 2),
+                        "turnover": 0,  # 新浪接口不提供换手率
+                        "pe_ratio": valuation["pe_ratio"],
+                        "pb_ratio": valuation["pb_ratio"],
+                        "total_value": valuation["total_value"],
+                        "circulating_value": 0,
+                    }
         except Exception as e:
-            logger.error(
-                f"Failed to get single stock data for {code} via stock_zh_a_daily: {e}"
-            )
+            logger.error(f"Failed to get single stock realtime for {code}: {e}")
 
         return None
 
@@ -555,6 +558,10 @@ class StockClient(BaseClient):
 
         return results
 
+    # 港股历史数据缓存键前缀和 TTL
+    _HK_HISTORY_CACHE_KEY_PREFIX = "hk_history:"
+    _HK_HISTORY_CACHE_TTL = 86400  # 缓存 1 天
+
     def get_hk_stock_history(
         self,
         code: str,
@@ -564,8 +571,31 @@ class StockClient(BaseClient):
     ) -> List[Dict[str, Any]]:
         """
         获取港股历史数据
-        使用 AKShare 的 stock_hk_hist 接口
+        使用 AKShare 的 stock_hk_hist 接口，带 Redis 缓存
         """
+        import json
+
+        from src.infrastructure.cache.redis_cache import cache
+
+        # 缓存只用于无日期过滤的情况
+        use_cache = start_date is None and end_date is None
+        cache_key = f"{self._HK_HISTORY_CACHE_KEY_PREFIX}{code}:{period}"
+
+        # 1. 尝试从 Redis 获取
+        if use_cache:
+            try:
+                cached = cache.client.get(cache_key)
+                if cached:
+                    logger.debug(f"Using cached HK history for {code}")
+                    data = json.loads(cached)
+                    # 恢复 time 字段为 datetime
+                    for item in data:
+                        item["time"] = pd.to_datetime(item["time"])
+                    return data
+            except Exception as e:
+                logger.warning(f"Failed to get HK history from cache: {e}")
+
+        # 2. 从 API 获取
         try:
             df = ak.stock_hk_hist(symbol=code, period=period, adjust="qfq")
 
@@ -599,16 +629,54 @@ class StockClient(BaseClient):
                     }
                 )
 
+            # 3. 存入 Redis 缓存（无日期过滤时才缓存）
+            if use_cache and result:
+                try:
+                    # 序列化时将 datetime 转为字符串
+                    cache_data = []
+                    for item in result:
+                        cache_item = item.copy()
+                        cache_item["time"] = item["time"].isoformat()
+                        cache_data.append(cache_item)
+                    cache.client.setex(
+                        cache_key,
+                        self._HK_HISTORY_CACHE_TTL,
+                        json.dumps(cache_data, ensure_ascii=False),
+                    )
+                    logger.debug(f"Cached HK history for {code}")
+                except Exception as e:
+                    logger.warning(f"Failed to cache HK history: {e}")
+
             return result
         except Exception as e:
             logger.error(f"Failed to get HK stock history for {code}: {e}")
             return []
 
+    # 港股估值缓存键前缀和 TTL
+    _HK_VALUATION_CACHE_KEY_PREFIX = "hk_valuation:"
+    _HK_VALUATION_CACHE_TTL = 86400  # 缓存 1 天
+
     def _get_hk_stock_valuation(self, code: str) -> Dict[str, float]:
         """
         获取港股估值数据（市盈率、市净率、总市值）
-        使用 stock_hk_valuation_baidu 接口
+        使用 stock_hk_valuation_baidu 接口，带 Redis 缓存
         """
+        import json
+
+        from src.infrastructure.cache.redis_cache import cache
+
+        cache_key = f"{self._HK_VALUATION_CACHE_KEY_PREFIX}{code}"
+
+        # 1. 先从 Redis 获取
+        try:
+            cached = cache.client.get(cache_key)
+            if cached:
+                logger.debug(f"Using cached HK valuation for {code}")
+                return json.loads(cached)
+        except Exception as e:
+            logger.warning(f"Failed to get HK valuation from cache: {e}")
+
+        # 2. 从 API 获取
         valuation = {"pe_ratio": 0, "pb_ratio": 0, "total_value": 0}
 
         # 获取市盈率(TTM)
@@ -641,6 +709,17 @@ class StockClient(BaseClient):
                 valuation["total_value"] = float(df.iloc[-1]["value"]) * 100000000
         except Exception as e:
             logger.debug(f"Failed to get HK market cap for {code}: {e}")
+
+        # 3. 存入 Redis 缓存
+        try:
+            cache.client.setex(
+                cache_key,
+                self._HK_VALUATION_CACHE_TTL,
+                json.dumps(valuation),
+            )
+            logger.debug(f"Cached HK valuation for {code}")
+        except Exception as e:
+            logger.warning(f"Failed to cache HK valuation: {e}")
 
         return valuation
 

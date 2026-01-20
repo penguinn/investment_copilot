@@ -132,9 +132,10 @@ export const stockApi = {
   },
 
   // 获取自选股列表
-  getWatchlist: async (market?: string) => {
+  getWatchlist: async (market?: string, refresh?: boolean) => {
     const params = new URLSearchParams();
     if (market) params.append('market', market);
+    if (refresh) params.append('refresh', 'true');
     const query = params.toString();
     return request<any[]>(`/api/stock/watchlist${query ? '?' + query : ''}`);
   },

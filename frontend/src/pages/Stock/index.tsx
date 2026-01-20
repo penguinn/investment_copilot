@@ -218,10 +218,10 @@ const Stock: React.FC = () => {
   }, [fetchIndexHistory]);
 
   // 获取自选股列表
-  const fetchWatchlist = useCallback(async (market: string) => {
+  const fetchWatchlist = useCallback(async (market: string, refresh: boolean = false) => {
     setWatchlistLoading(true);
     try {
-      const data = await stockApi.getWatchlist(market);
+      const data = await stockApi.getWatchlist(market, refresh);
       if (data) {
         // 后端已经返回完整数据（包括走势图数据），直接使用
         const stocks = data.map((item: any) => ({
@@ -748,7 +748,7 @@ const Stock: React.FC = () => {
               type="text" 
               icon={<ReloadOutlined />}
               loading={watchlistLoading}
-              onClick={() => fetchWatchlist(activeMarket)}
+              onClick={() => fetchWatchlist(activeMarket, true)}
             >
               刷新
             </Button>

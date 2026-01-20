@@ -159,7 +159,7 @@ class StockService(BaseService):
     # ========== 自选相关 ==========
 
     async def get_watchlist(
-        self, user_id: str = "default", market: str = None
+        self, user_id: str = "default", market: str = None, use_cache: bool = True
     ) -> List[Dict[str, Any]]:
         """获取自选股列表
 
@@ -169,9 +169,10 @@ class StockService(BaseService):
         cache_key = self._cache_key("watchlist", user_id, market or "all")
 
         # 尝试从缓存获取
-        cached = await self._get_from_cache(cache_key)
-        if cached:
-            return cached
+        if use_cache:
+            cached = await self._get_from_cache(cache_key)
+            if cached:
+                return cached
 
         # 非交易时间，如果没有缓存也需要获取一次数据
         watchlist = await self.watchlist_repo.get_by_user(user_id)
@@ -195,13 +196,18 @@ class StockService(BaseService):
         cn_codes = [item.code for item in cn_items]
         cn_quotes = self.client.get_stocks_realtime_batch(cn_codes) if cn_codes else []
 
-        # 获取港股实时行情（使用历史数据获取更完整信息，包含换手率）
+        # 获取港股实时行情和走势（一次性获取，避免重复调用）
         hk_codes = [item.code for item in hk_items]
         hk_quotes = []
+        hk_history_map = {}
         for code in hk_codes:
             quote = self.client.get_hk_stock_realtime_with_history(code)
             if quote:
                 hk_quotes.append(quote)
+                # 同时获取走势数据（复用历史数据调用）
+                history = self.client.get_hk_stock_history(code, period="daily")
+                if history:
+                    hk_history_map[code] = [h["close"] for h in history[-7:]]
 
         # 获取美股实时行情
         us_codes = [item.code for item in us_items]
@@ -222,14 +228,8 @@ class StockService(BaseService):
             except Exception as e:
                 logger.debug(f"Failed to get CN history for {code}: {e}")
 
-        # 港股走势
-        for code in hk_codes:
-            try:
-                history = self.client.get_hk_stock_history(code, period="daily")
-                if history:
-                    history_map[code] = [h["close"] for h in history[-7:]]
-            except Exception as e:
-                logger.debug(f"Failed to get HK history for {code}: {e}")
+        # 合并港股走势数据
+        history_map.update(hk_history_map)
 
         # 合并数据
         result = []

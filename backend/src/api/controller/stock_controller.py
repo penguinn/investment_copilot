@@ -104,10 +104,11 @@ async def search_stock(
 async def get_watchlist(
     user_id: str = Query("default", description="用户ID"),
     market: Optional[str] = Query(None, description="市场过滤 (CN/HK/US)"),
+    refresh: bool = Query(False, description="是否强制刷新"),
 ):
     """获取自选股列表"""
     try:
-        data = await stock_service.get_watchlist(user_id, market)
+        data = await stock_service.get_watchlist(user_id, market, use_cache=not refresh)
         return {"code": 0, "data": data, "message": "success"}
     except Exception as e:
         logger.error(f"Failed to get watchlist: {e}")

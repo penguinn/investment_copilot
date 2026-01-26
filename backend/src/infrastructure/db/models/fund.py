@@ -74,6 +74,7 @@ class FundWatchlist(Base):
     code = Column(String(20), nullable=False, comment="基金代码")
     name = Column(String(200), comment="基金名称")
     fund_type = Column(String(50), comment="基金类型")
+    market = Column(String(20), default="OTC", comment="市场类型(ETF/OTC)")
     sort_order = Column(Integer, default=0, comment="排序")
     notes = Column(Text, comment="备注")
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -81,4 +82,5 @@ class FundWatchlist(Base):
     __table_args__ = (
         Index("ix_fund_watchlist_user", "user_id"),
         Index("ix_fund_watchlist_user_code", "user_id", "code", unique=True),
+        Index("ix_fund_watchlist_user_market", "user_id", "market"),
     )

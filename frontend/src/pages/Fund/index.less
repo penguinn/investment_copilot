@@ -1,45 +1,276 @@
 .fundPage {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  padding-bottom: 24px;
 }
 
-.pageHeader {
+.mainTabs {
+  margin-bottom: 8px;
+  
+  :global {
+    .ant-tabs-nav {
+      margin-bottom: 0;
+    }
+    
+    .ant-tabs-tab {
+      font-size: 16px;
+      font-weight: 500;
+      padding: 12px 16px;
+      
+      &.ant-tabs-tab-active .ant-tabs-tab-btn {
+        color: var(--primary-color);
+        font-weight: 600;
+      }
+    }
+    
+    .ant-tabs-ink-bar {
+      background: var(--primary-color);
+      height: 3px;
+      border-radius: 2px;
+    }
+  }
+}
+
+// 热门 ETF 区域
+.hotSection {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.sectionHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
   flex-wrap: wrap;
-  gap: 16px;
-}
-
-.titleSection {
-  display: flex;
-  align-items: baseline;
   gap: 12px;
 }
 
-.pageTitle {
-  font-size: 24px;
+.sectionTitle {
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.fundCount {
+.etfCount {
   font-size: 14px;
+  font-weight: 400;
   color: var(--text-tertiary);
 }
 
-.actionSection {
+.titleGroup {
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+.timeRangeSelect {
+  :global {
+    .ant-segmented-item-selected {
+      background: var(--primary-color) !important;
+      color: #fff !important;
+    }
+  }
+}
+
+// 热门 ETF 网格
+.hotEtfGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.hotEtfCard {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+  
+  :global {
+    .ant-card-body {
+      padding: 0;
+    }
+  }
+}
+
+.etfHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.etfName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.etfCode {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.etfPrice {
+  display: flex;
+  align-items: baseline;
   gap: 12px;
+  margin-bottom: 12px;
+}
+
+.price {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.change {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.rise {
+  color: var(--rise-color);
+}
+
+.fall {
+  color: var(--fall-color);
+}
+
+.etfChart {
+  height: 100px;
+  width: 100%;
+}
+
+// 自选列表区域
+.watchlistSection {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.watchlistCard {
+  background: transparent;
+  
+  :global {
+    .ant-card-body {
+      padding: 0;
+    }
+  }
+}
+
+.etfTable {
+  :global {
+    .ant-table {
+      background: transparent !important;
+    }
+    
+    .ant-table-thead > tr > th {
+      background: rgba(51, 65, 85, 0.5) !important;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    
+    .ant-table-tbody > tr > td {
+      padding: 14px 16px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+    }
+    
+    .ant-table-tbody > tr {
+      transition: all 0.2s;
+      
+      &:hover > td {
+        background: rgba(59, 130, 246, 0.05) !important;
+      }
+    }
+  }
+}
+
+.etfInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.etfTypeTag {
+  font-size: 10px;
+  padding: 0 6px;
+  line-height: 16px;
+  border-radius: 4px;
+}
+
+.miniChart {
+  display: block;
+}
+
+.highLow {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+// 搜索弹窗
+.searchModal {
+  :global {
+    .ant-modal-content {
+      background: #1e293b !important;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    
+    .ant-modal-header {
+      background: #1e293b !important;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 16px 16px 0 0;
+    }
+    
+    .ant-modal-title {
+      color: #f1f5f9;
+      font-weight: 600;
+    }
+    
+    .ant-modal-body {
+      background: #1e293b !important;
+    }
+    
+    .ant-modal-close-x {
+      color: #94a3b8;
+    }
+  }
 }
 
 .searchInput {
-  width: 280px;
+  margin-bottom: 16px;
   
   :global {
+    .ant-input {
+      background: #0f172a !important;
+      border-color: rgba(148, 163, 184, 0.2) !important;
+      color: #f1f5f9 !important;
+      
+      &::placeholder {
+        color: #64748b;
+      }
+    }
+    
     .ant-input-group-addon {
       background: var(--primary-color) !important;
       border-color: var(--primary-color) !important;
@@ -52,7 +283,61 @@
   }
 }
 
-.fundCard {
+.searchResults {
+  max-height: 400px;
+  overflow-y: auto;
+  background: #1e293b;
+  border-radius: 8px;
+  
+  :global {
+    .ant-list {
+      background: transparent;
+    }
+    
+    .ant-list-item {
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #334155 !important;
+      border: 1px solid rgba(148, 163, 184, 0.1) !important;
+      
+      &:hover {
+        background: #3b82f6 !important;
+        background: rgba(59, 130, 246, 0.2) !important;
+      }
+    }
+    
+    .ant-list-item-meta-title {
+      color: #f1f5f9 !important;
+      font-weight: 600;
+    }
+    
+    .ant-list-item-meta-description {
+      color: #94a3b8 !important;
+      font-size: 12px;
+    }
+    
+    .ant-empty-description {
+      color: #64748b;
+    }
+  }
+}
+
+.searchResultItem {
+  cursor: pointer;
+}
+
+// 排行榜区域
+.rankingSection {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(249, 115, 22, 0.05));
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.rankingCard {
+  background: transparent;
+  
   :global {
     .ant-card-body {
       padding: 0;
@@ -60,98 +345,136 @@
   }
 }
 
-.fundTable {
+.rank {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--text-secondary);
+}
+
+.fundTypeSelect, .sortSelect {
   :global {
-    .ant-table {
-      background: transparent !important;
-    }
-    
-    .ant-table-thead > tr > th {
-      background: rgba(51, 65, 85, 0.5) !important;
-      font-weight: 600;
-      font-size: 13px;
-      padding: 14px 16px;
-    }
-    
-    .ant-table-tbody > tr > td {
-      padding: 16px;
-      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-    }
-    
-    .ant-table-tbody > tr {
-      cursor: pointer;
-      transition: all 0.2s;
-      
-      &:hover > td {
-        background: rgba(59, 130, 246, 0.05) !important;
-      }
+    .ant-segmented-item-selected {
+      background: var(--primary-color) !important;
+      color: #fff !important;
     }
   }
 }
 
-.fundInfo {
+// 基金详情弹窗
+.detailModal {
+  :global {
+    .ant-modal-content {
+      background: #1e293b !important;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    
+    .ant-modal-header {
+      background: #1e293b !important;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    
+    .ant-modal-title {
+      color: #f1f5f9;
+      font-weight: 600;
+    }
+    
+    .ant-modal-body {
+      background: #1e293b !important;
+    }
+    
+    .ant-descriptions-bordered .ant-descriptions-item-label {
+      background: rgba(51, 65, 85, 0.5);
+      color: #94a3b8;
+    }
+    
+    .ant-descriptions-bordered .ant-descriptions-item-content {
+      background: rgba(30, 41, 59, 0.5);
+      color: #e2e8f0;
+    }
+  }
+}
+
+.detailLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.detailContent {
+  padding: 8px 0;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+}
+
+.detailNav {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(51, 65, 85, 0.3);
+  border-radius: 8px;
+}
+
+.navItem {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.fundName {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-family: -apple-system, 'PingFang SC', sans-serif;
-}
-
-.fundCode {
+.navLabel {
   font-size: 12px;
-  color: var(--text-tertiary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  color: #94a3b8;
 }
 
-.fundTypeTag {
-  font-size: 10px;
-  padding: 0 6px;
-  line-height: 16px;
-  border-radius: 4px;
+.navValue {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
 }
 
-.nav {
-  font-size: 16px;
-  font-weight: 600;
+.detailInfo {
+  margin-top: 16px;
 }
 
-.changePercent {
-  font-weight: 600;
-}
-
-:global {
-  .rise-text {
-    color: var(--rise-color);
-  }
-  
-  .fall-text {
-    color: var(--fall-color);
+// 响应式布局
+@media (max-width: 1200px) {
+  .hotEtfGrid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .pageHeader {
+  .sectionHeader {
     flex-direction: column;
     align-items: flex-start;
   }
   
-  .actionSection {
-    width: 100%;
-    flex-direction: column;
-    
-    .searchInput {
-      width: 100%;
-    }
-    
-    button {
-      width: 100%;
-    }
+  .hotEtfGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .price {
+    font-size: 18px;
   }
 }

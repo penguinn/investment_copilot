@@ -60,7 +60,7 @@ export const goldApi = {
   },
 };
 
-// 基金 API
+// 基金 API（场外基金）
 export const fundApi = {
   // 获取各类型基金汇总统计
   getSummary: async () => {
@@ -74,6 +74,110 @@ export const fundApi = {
     if (limit) params.append('limit', String(limit));
     const query = params.toString();
     return request<any[]>(`/api/fund/realtime${query ? '?' + query : ''}`);
+  },
+};
+
+// 场外基金 API
+export const otcFundApi = {
+  // 获取基金排行榜
+  getRanking: async (fundType?: string, sortBy?: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (fundType) params.append('fund_type', fundType);
+    if (sortBy) params.append('sort_by', sortBy);
+    if (limit) params.append('limit', String(limit));
+    const query = params.toString();
+    return request<any[]>(`/api/fund/otc/ranking${query ? '?' + query : ''}`);
+  },
+
+  // 获取基金详情
+  getDetail: async (code: string) => {
+    return request<any>(`/api/fund/otc/detail/${code}`);
+  },
+
+  // 搜索场外基金
+  search: async (keyword: string) => {
+    return request<any[]>(`/api/fund/otc/search?keyword=${encodeURIComponent(keyword)}`);
+  },
+
+  // 获取自选列表
+  getWatchlist: async (refresh?: boolean) => {
+    const params = new URLSearchParams();
+    if (refresh) params.append('refresh', 'true');
+    const query = params.toString();
+    return request<any[]>(`/api/fund/otc/watchlist${query ? '?' + query : ''}`);
+  },
+
+  // 添加到自选
+  addToWatchlist: async (code: string, name?: string, fundType?: string) => {
+    return request<any>('/api/fund/otc/watchlist', {
+      method: 'POST',
+      body: JSON.stringify({ code, name, fund_type: fundType }),
+    });
+  },
+
+  // 移除自选
+  removeFromWatchlist: async (code: string) => {
+    return request<any>(`/api/fund/otc/watchlist/${code}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // 获取基金历史净值
+  getHistory: async (code: string) => {
+    return request<any[]>(`/api/fund/history/${code}`);
+  },
+};
+
+// ETF API（场内基金）
+export const etfApi = {
+  // 获取 ETF 实时行情
+  getRealtime: async (etfType?: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (etfType) params.append('etf_type', etfType);
+    if (limit) params.append('limit', String(limit));
+    const query = params.toString();
+    return request<any[]>(`/api/fund/etf/realtime${query ? '?' + query : ''}`);
+  },
+
+  // 获取 ETF 历史数据
+  getHistory: async (code: string, days?: number) => {
+    const params = new URLSearchParams();
+    if (days) params.append('days', String(days));
+    const query = params.toString();
+    return request<any[]>(`/api/fund/etf/history/${code}${query ? '?' + query : ''}`);
+  },
+
+  // 搜索 ETF
+  search: async (keyword: string) => {
+    return request<any[]>(`/api/fund/etf/search?keyword=${encodeURIComponent(keyword)}`);
+  },
+
+  // 获取热门 ETF
+  getHot: async () => {
+    return request<any[]>('/api/fund/etf/hot');
+  },
+
+  // 获取 ETF 自选列表
+  getWatchlist: async (refresh?: boolean) => {
+    const params = new URLSearchParams();
+    if (refresh) params.append('refresh', 'true');
+    const query = params.toString();
+    return request<any[]>(`/api/fund/etf/watchlist${query ? '?' + query : ''}`);
+  },
+
+  // 添加 ETF 到自选
+  addToWatchlist: async (code: string, name?: string) => {
+    return request<any>('/api/fund/etf/watchlist', {
+      method: 'POST',
+      body: JSON.stringify({ code, name }),
+    });
+  },
+
+  // 移除 ETF 自选
+  removeFromWatchlist: async (code: string) => {
+    return request<any>(`/api/fund/etf/watchlist/${code}`, {
+      method: 'DELETE',
+    });
   },
 };
 

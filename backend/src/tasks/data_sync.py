@@ -47,6 +47,7 @@ class DataSyncTask:
             asyncio.create_task(self._sync_fund_data(fund_service)),
             asyncio.create_task(self._sync_futures_data(futures_service)),
             asyncio.create_task(self._sync_watchlist_data(stock_service)),
+            asyncio.create_task(self._sync_etf_data(fund_service)),
         ]
 
         logger.info(f"Started {len(self._tasks)} data sync tasks")
@@ -191,6 +192,43 @@ class DataSyncTask:
 
             # 每 30 秒同步一次
             await asyncio.sleep(30)
+
+    async def _sync_etf_data(self, service):
+        """同步 ETF 数据（热门 ETF + 自选 ETF + 场外基金自选）"""
+        # 首次启动时预热缓存
+        etf_list_synced = False
+        otc_list_synced = False
+
+        while self._running:
+            try:
+                # 1. 同步热门 ETF 数据
+                await service.get_hot_etfs(use_cache=False)
+                logger.debug("Synced hot ETF data")
+
+                # 2. 预热 ETF 列表（只同步一次，缓存1小时）
+                if not etf_list_synced:
+                    await service.get_etf_realtime(use_cache=False)
+                    etf_list_synced = True
+                    logger.info("ETF list cache warmed up")
+
+                # 3. 预热场外基金列表（只同步一次，缓存5分钟）
+                if not otc_list_synced:
+                    await service.get_fund_ranking(use_cache=False)
+                    otc_list_synced = True
+                    logger.info("OTC fund list cache warmed up")
+
+                # 4. 同步自选 ETF 数据
+                await service.sync_etf_watchlist_data()
+
+                # 5. 同步场外基金自选数据
+                await service.sync_otc_watchlist_data()
+
+                logger.info("ETF & OTC fund data sync completed")
+            except Exception as e:
+                logger.warning(f"Failed to sync ETF data: {e}")
+
+            # 每 60 秒同步一次
+            await asyncio.sleep(60)
 
 
 # 全局任务管理器实例

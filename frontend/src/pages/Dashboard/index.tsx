@@ -11,6 +11,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { marketApi, goldApi, fundApi, futuresApi } from '@/services/api';
+import NewsCard from '@/components/NewsCard';
 import styles from './index.less';
 
 // 刷新间隔（5分钟）
@@ -426,36 +427,45 @@ const Dashboard: React.FC = () => {
         </Col>
       </Row>
 
-      {/* 期货大盘 */}
-      <Spin spinning={futuresLoading}>
-        <Card className={styles.marketCard}>
-          <div className={styles.cardHeader}>
-            <div className={styles.cardTitle}>
-              <LineChartOutlined />
-              <span>期货大盘</span>
-              <RefreshButton loading={futuresLoading} onClick={fetchFuturesData} />
-            </div>
-          </div>
-          <Row gutter={[16, 16]}>
-            {futuresData.map((item) => (
-              <Col xs={24} sm={8} key={item.code}>
-                <div className={`${styles.futuresItem} ${styles[getChangeColor(item.change)]}`}>
-                  <div className={styles.futuresHeader}>
-                    <span className={styles.futuresName}>{item.name}</span>
-                    <span className={styles.futuresCode}>{item.code}</span>
-                  </div>
-                  <div className={styles.futuresPrice}>{item.price.toFixed(2)}</div>
-                  <div className={styles.futuresChange}>
-                    {item.change >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                    <span>{formatChange(item.change)}</span>
-                    <span className={styles.percent}>{formatChange(item.changePercent)}%</span>
-                  </div>
+      <Row gutter={[16, 16]}>
+        {/* 期货大盘 */}
+        <Col xs={24} lg={12}>
+          <Spin spinning={futuresLoading}>
+            <Card className={styles.marketCard}>
+              <div className={styles.cardHeader}>
+                <div className={styles.cardTitle}>
+                  <LineChartOutlined />
+                  <span>期货大盘</span>
+                  <RefreshButton loading={futuresLoading} onClick={fetchFuturesData} />
                 </div>
-              </Col>
-            ))}
-          </Row>
-        </Card>
-      </Spin>
+              </div>
+              <Row gutter={[16, 16]}>
+                {futuresData.map((item) => (
+                  <Col xs={24} key={item.code}>
+                    <div className={`${styles.futuresItem} ${styles[getChangeColor(item.change)]}`}>
+                      <div className={styles.futuresHeader}>
+                        <span className={styles.futuresName}>{item.name}</span>
+                        <span className={styles.futuresCode}>{item.code}</span>
+                      </div>
+                      <div className={styles.futuresPrice}>{item.price.toFixed(2)}</div>
+                      <div className={styles.futuresChange}>
+                        {item.change >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                        <span>{formatChange(item.change)}</span>
+                        <span className={styles.percent}>{formatChange(item.changePercent)}%</span>
+                      </div>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </Card>
+          </Spin>
+        </Col>
+
+        {/* 资讯快报 */}
+        <Col xs={24} lg={12}>
+          <NewsCard height={300} />
+        </Col>
+      </Row>
     </div>
   );
 };

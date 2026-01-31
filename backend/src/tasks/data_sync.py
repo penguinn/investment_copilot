@@ -31,6 +31,7 @@ class DataSyncTask:
         from src.service.futures_service import FuturesService
         from src.service.gold_service import GoldService
         from src.service.market_service import MarketService
+        from src.service.news_service import NewsService
         from src.service.stock_service import StockService
 
         # 创建服务实例
@@ -39,6 +40,7 @@ class DataSyncTask:
         fund_service = FundService()
         futures_service = FuturesService()
         stock_service = StockService()
+        news_service = NewsService()
 
         # 启动各个同步任务
         self._tasks = [
@@ -48,6 +50,7 @@ class DataSyncTask:
             asyncio.create_task(self._sync_futures_data(futures_service)),
             asyncio.create_task(self._sync_watchlist_data(stock_service)),
             asyncio.create_task(self._sync_etf_data(fund_service)),
+            asyncio.create_task(self._sync_news_data(news_service)),
         ]
 
         logger.info(f"Started {len(self._tasks)} data sync tasks")
@@ -127,7 +130,9 @@ class DataSyncTask:
                         )
                         logger.debug(f"Synced history: {market}/{code} ({days} days)")
                     except Exception as e:
-                        logger.warning(f"Failed to sync history {market}/{code}/{days}: {e}")
+                        logger.warning(
+                            f"Failed to sync history {market}/{code}/{days}: {e}"
+                        )
 
                     # 每个请求间隔 0.5 秒
                     await asyncio.sleep(0.5)
@@ -229,6 +234,41 @@ class DataSyncTask:
 
             # 每 60 秒同步一次
             await asyncio.sleep(60)
+
+    async def _sync_news_data(self, service):
+        """
+        同步新闻数据并使用 LLM 进行处理
+        - 启动时立即获取24小时内的新闻并总结
+        - 之后每6小时（可配置）获取一次新闻
+        """
+        from src.config import NEWS_SYNC_INTERVAL
+
+        # 首次启动时立即同步一次
+        first_sync = True
+
+        while self._running:
+            try:
+                # 步骤1: 同步新闻
+                count = await service.sync_news()
+                if first_sync:
+                    logger.info(f"[News] 首次同步完成: {count} 条新增")
+                    first_sync = False
+                elif count > 0:
+                    logger.info(f"[News] 同步完成: {count} 条新增")
+
+                # 步骤2: 处理所有未处理的新闻（生成摘要、分析情感）
+                processed = await service.process_unprocessed_news()
+                if processed > 0:
+                    logger.info(f"[News] LLM 处理完成，共处理 {processed} 条新闻")
+
+            except Exception as e:
+                logger.error(f"[News] 同步出错: {e}")
+
+            # 等待下一次同步（默认6小时）
+            logger.info(
+                f"[News] 下次同步在 {NEWS_SYNC_INTERVAL} 秒后 ({NEWS_SYNC_INTERVAL // 3600}h)"
+            )
+            await asyncio.sleep(NEWS_SYNC_INTERVAL)
 
 
 # 全局任务管理器实例

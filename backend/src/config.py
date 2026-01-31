@@ -1,5 +1,13 @@
 import os
+from pathlib import Path
 from typing import List
+
+from dotenv import load_dotenv
+
+# 加载 .env 文件
+env_path = Path(__file__).parent.parent / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
 
 # 基础设置
 DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
@@ -50,3 +58,21 @@ CACHE_TTL_WATCHLIST = 3600 * 24  # 自选列表缓存1天
 # 日志设置
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# 阿里百炼平台配置
+DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
+DASHSCOPE_MODEL = os.environ.get("DASHSCOPE_MODEL", "qwen-turbo")
+DASHSCOPE_MODEL_SUMMARY = os.environ.get(
+    "DASHSCOPE_MODEL_SUMMARY", "qwen-plus"
+)  # 新闻摘要
+DASHSCOPE_MODEL_AGENT = os.environ.get("DASHSCOPE_MODEL_AGENT", "qwen-max")  # Agent推理
+
+# 搜索工具配置
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
+SERPAPI_API_KEY = os.environ.get("SERPAPI_API_KEY", "")
+
+# 新闻同步配置
+NEWS_SYNC_INTERVAL = int(
+    os.environ.get("NEWS_SYNC_INTERVAL", "21600")
+)  # 同步间隔（秒），默认6小时
+NEWS_SYNC_HOURS = int(os.environ.get("NEWS_SYNC_HOURS", "24"))  # 同步最近多少小时的新闻

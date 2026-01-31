@@ -7,6 +7,7 @@ from src.infrastructure.db.models.futures import Futures, FuturesQuote, FuturesW
 from src.infrastructure.db.models.bond import Bond, BondQuote, BondWatchlist
 from src.infrastructure.db.models.forex import Forex, ForexQuote, ForexWatchlist
 from src.infrastructure.db.models.market_index import MarketIndex, MarketIndexQuote
+from src.infrastructure.db.pgsql import AgentMemory, News, NewsSource
 
 __all__ = [
     "TimeSeriesBase",
@@ -30,4 +31,7 @@ __all__ = [
     "ForexWatchlist",
     "MarketIndex",
     "MarketIndexQuote",
+    "News",
+    "NewsSource",
+    "AgentMemory",
 ]

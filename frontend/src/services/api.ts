@@ -192,6 +192,62 @@ export const futuresApi = {
   },
 };
 
+// 新闻 API
+export const newsApi = {
+  // 获取最新新闻
+  getLatest: async (source?: string, category?: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (source) params.append('source', source);
+    if (category) params.append('category', category);
+    if (limit) params.append('limit', String(limit));
+    const query = params.toString();
+    return request<any[]>(`/api/news/latest${query ? '?' + query : ''}`);
+  },
+
+  // 获取重要新闻
+  getImportant: async (minImportance?: number, hours?: number, limit?: number) => {
+    const params = new URLSearchParams();
+    if (minImportance) params.append('min_importance', String(minImportance));
+    if (hours) params.append('hours', String(hours));
+    if (limit) params.append('limit', String(limit));
+    const query = params.toString();
+    return request<any[]>(`/api/news/important${query ? '?' + query : ''}`);
+  },
+
+  // 获取政策新闻
+  getPolicy: async (limit?: number) => {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', String(limit));
+    const query = params.toString();
+    return request<any[]>(`/api/news/policy${query ? '?' + query : ''}`);
+  },
+
+  // 获取市场快讯
+  getMarket: async (limit?: number) => {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', String(limit));
+    const query = params.toString();
+    return request<any[]>(`/api/news/market${query ? '?' + query : ''}`);
+  },
+
+  // 搜索新闻
+  search: async (keyword: string, limit?: number) => {
+    const params = new URLSearchParams();
+    params.append('keyword', keyword);
+    if (limit) params.append('limit', String(limit));
+    const query = params.toString();
+    return request<any[]>(`/api/news/search?${query}`);
+  },
+
+  // 手动同步新闻
+  sync: async (source?: string) => {
+    const params = new URLSearchParams();
+    if (source) params.append('source', source);
+    const query = params.toString();
+    return request<any>(`/api/news/sync${query ? '?' + query : ''}`, { method: 'POST' });
+  },
+};
+
 // 股票 API
 export const stockApi = {
   // 获取股票实时行情

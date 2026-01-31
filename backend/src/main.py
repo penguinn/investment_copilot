@@ -18,6 +18,8 @@ from src.api.controller.futures_controller import router as futures_router
 from src.api.controller.bond_controller import router as bond_router
 from src.api.controller.forex_controller import router as forex_router
 from src.api.controller.market_controller import router as market_router
+from src.api.controller.news_controller import router as news_router
+from src.api.controller.agent_controller import router as agent_router
 from src.infrastructure.db.database import init_db, close_db
 from src.tasks import data_sync_task
 
@@ -96,6 +98,8 @@ app.include_router(futures_router)
 app.include_router(bond_router)
 app.include_router(forex_router)
 app.include_router(market_router)
+app.include_router(news_router)
+app.include_router(agent_router)
 
 
 @app.get("/")

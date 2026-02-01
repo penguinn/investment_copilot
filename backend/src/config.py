@@ -72,7 +72,36 @@ TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
 SERPAPI_API_KEY = os.environ.get("SERPAPI_API_KEY", "")
 
 # 新闻同步配置
-NEWS_SYNC_INTERVAL = int(
-    os.environ.get("NEWS_SYNC_INTERVAL", "21600")
-)  # 同步间隔（秒），默认6小时
 NEWS_SYNC_HOURS = int(os.environ.get("NEWS_SYNC_HOURS", "24"))  # 同步最近多少小时的新闻
+
+# 每日投资建议配置
+DAILY_ADVICE_HOUR = int(
+    os.environ.get("DAILY_ADVICE_HOUR", "14")
+)  # 每天执行时间（小时）
+DAILY_ADVICE_MINUTE = int(
+    os.environ.get("DAILY_ADVICE_MINUTE", "0")
+)  # 每天执行时间（分钟）
+
+# 通知渠道配置（可多选，逗号分隔）
+# 可选值: log, email, sms, database
+# 例如: "log,email" 表示同时输出日志和发送邮件
+NOTIFY_CHANNELS = os.environ.get("NOTIFY_CHANNELS", "log,database")
+
+# 邮件配置（当 NOTIFY_CHANNELS 包含 email 时生效）
+EMAIL_ENABLED = os.environ.get("EMAIL_ENABLED", "false").lower() == "true"
+EMAIL_SMTP_HOST = os.environ.get("EMAIL_SMTP_HOST", "smtp.qq.com")
+EMAIL_SMTP_PORT = int(os.environ.get("EMAIL_SMTP_PORT", "465"))
+EMAIL_SMTP_USER = os.environ.get("EMAIL_SMTP_USER", "")
+EMAIL_SMTP_PASSWORD = os.environ.get("EMAIL_SMTP_PASSWORD", "")  # QQ邮箱使用授权码
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "")
+EMAIL_TO = os.environ.get("EMAIL_TO", "")  # 接收投资建议的邮箱，多个用逗号分隔
+
+# 短信配置（当 NOTIFY_CHANNELS 包含 sms 时生效）
+# 使用阿里云短信服务
+SMS_ACCESS_KEY_ID = os.environ.get("SMS_ACCESS_KEY_ID", "")
+SMS_ACCESS_KEY_SECRET = os.environ.get("SMS_ACCESS_KEY_SECRET", "")
+SMS_SIGN_NAME = os.environ.get("SMS_SIGN_NAME", "")  # 短信签名
+SMS_TEMPLATE_CODE = os.environ.get("SMS_TEMPLATE_CODE", "")  # 短信模板ID
+SMS_PHONE_NUMBERS = os.environ.get(
+    "SMS_PHONE_NUMBERS", ""
+)  # 接收短信的手机号，多个用逗号分隔

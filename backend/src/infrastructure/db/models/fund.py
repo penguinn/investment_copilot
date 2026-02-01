@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import (
     Boolean,
     Column,
+    Date,
     DateTime,
     Float,
     Index,
@@ -38,11 +39,11 @@ class Fund(Base):
 
 
 class FundNav(Base):
-    """基金净值时序表"""
+    """基金每日净值表（每天只存一条记录）"""
 
     __tablename__ = "fund_navs"
 
-    time = Column(DateTime, primary_key=True, comment="时间")
+    date = Column(Date, primary_key=True, comment="日期")
     code = Column(String(20), primary_key=True, comment="基金代码")
     name = Column(String(200), comment="基金名称")
     fund_type = Column(String(50), comment="基金类型")
@@ -58,9 +59,9 @@ class FundNav(Base):
     return_ytd = Column(Float, comment="今年以来收益")
 
     __table_args__ = (
-        Index("ix_fund_navs_code_time", "code", "time"),
-        Index("ix_fund_navs_type_time", "fund_type", "time"),
-        {"comment": "基金净值时序表 - TimescaleDB hypertable"},
+        Index("ix_fund_navs_code_date", "code", "date"),
+        Index("ix_fund_navs_type_date", "fund_type", "date"),
+        {"comment": "基金每日净值表 - 每天收盘后存储一次"},
     )
 
 

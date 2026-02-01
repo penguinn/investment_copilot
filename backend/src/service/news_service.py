@@ -26,6 +26,13 @@ class NewsService(BaseService):
         self.client = NewsClient()
         self.llm_client = QwenClient()
 
+    def _clean_text(self, text: str) -> str:
+        """清理文本，移除 PostgreSQL 不支持的字符"""
+        if not text:
+            return ""
+        # 移除空字符（0x00），PostgreSQL 不支持
+        return text.replace("\x00", "")
+
     async def get_latest_news(
         self,
         source: str = None,
@@ -257,17 +264,17 @@ class NewsService(BaseService):
                         skipped += 1
                         continue
 
-                    # 创建新记录
+                    # 创建新记录（清理文本中的非法字符）
                     news = News(
                         source=news_data["source"],
-                        source_name=news_data.get("source_name", ""),
-                        title=news_data.get("title", ""),
-                        content=news_data.get("content", ""),
+                        source_name=self._clean_text(news_data.get("source_name", "")),
+                        title=self._clean_text(news_data.get("title", "")),
+                        content=self._clean_text(news_data.get("content", "")),
                         url=news_data.get("url", ""),
                         category=news_data.get("category", "news"),
                         publish_time=news_data["publish_time"],
                         importance=news_data.get("importance", 1),
-                        related_sectors=news_data.get("related_sectors", ""),
+                        related_sectors=self._clean_text(news_data.get("related_sectors", "")),
                         crawl_time=datetime.now(),
                     )
                     session.add(news)

@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from openai import OpenAI
 
 from src.agent.memory import ConversationMemory, LongTermMemory
-from src.agent.tools import NewsTool, SearchTool
+from src.agent.tools import FundTool, NewsTool, SearchTool
 from src.config import DASHSCOPE_API_KEY, DASHSCOPE_MODEL_AGENT
 
 logger = logging.getLogger(__name__)
@@ -30,13 +30,19 @@ SYSTEM_PROMPT = """你是一位专业的投资顾问 AI 助手。你需要根据
 ## 可用工具
 1. **get_news**: 从数据库获取财经新闻（政策、市场快讯等）
 2. **web_search**: 搜索互联网获取最新信息
+3. **get_fund_list**: 获取基金列表（ETF、场外基金）
 
 ## 建议原则
 1. 分析当前市场环境和主要风险
 2. 识别潜在的投资机会
-3. 推荐具体的投资方向（板块、行业）
+3. 推荐具体的基金类型和投资方向
 4. 建议客观专业，同时提示风险
-5. **不推荐具体的股票代码**
+5. **不推荐具体的股票代码，但可以推荐基金类型**
+
+## 基金类型说明
+- **ETF（交易型开放式基金）**：在交易所上市交易，如军工ETF、新能源ETF、科技ETF
+- **场外基金**：通过基金公司或第三方平台购买的基金
+- **主题基金**：专注于特定行业或主题的基金
 
 ## 回答格式
 请用以下格式回答用户：
@@ -47,9 +53,13 @@ SYSTEM_PROMPT = """你是一位专业的投资顾问 AI 助手。你需要根据
 ### 投资机会
 （识别到的投资机会和利好板块）
 
-### 推荐方向
-- 板块/行业1: 原因
-- 板块/行业2: 原因
+### 推荐基金类型
+- **基金类型1**（如：军工ETF）: 推荐理由
+- **基金类型2**（如：新能源主题基金）: 推荐理由
+- **基金类型3**: 推荐理由
+
+### 配置建议
+（资金配置比例建议，如进攻/防守型配置）
 
 ### 风险提示
 （需要关注的风险因素）
@@ -88,6 +98,7 @@ class InvestmentAgent:
         self.tools = {
             "get_news": NewsTool(),
             "web_search": SearchTool(),
+            "get_fund_list": FundTool(),
         }
 
         # 初始化记忆

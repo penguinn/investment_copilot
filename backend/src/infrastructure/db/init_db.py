@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 # 需要转换为 hypertable 的时序表
 HYPERTABLES = [
     ("stock_quotes", "time"),
-    ("fund_navs", "time"),
     ("gold_prices", "time"),
     ("futures_quotes", "time"),
     ("bond_quotes", "time"),

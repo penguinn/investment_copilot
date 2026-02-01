@@ -2,13 +2,15 @@
 基金服务
 """
 import logging
+from datetime import date
 from typing import Any, Dict, List, Optional
 
 from src.service.base import BaseService
 from src.config import CACHE_TTL_REALTIME, CACHE_TTL_DAILY
 from src.infrastructure.client.akshare.fund import FundClient
 from src.infrastructure.db.models.fund import Fund, FundNav, FundWatchlist
-from src.infrastructure.db.repository.base import TimeSeriesRepository, WatchlistRepository
+from src.infrastructure.db.repository.base import WatchlistRepository
+from src.infrastructure.db.database import get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,6 @@ class FundService(BaseService):
     def __init__(self):
         super().__init__("fund")
         self.client = FundClient()
-        self.nav_repo = TimeSeriesRepository(FundNav)
         self.watchlist_repo = WatchlistRepository(FundWatchlist)
 
     async def get_realtime_navs(
@@ -47,15 +48,47 @@ class FundService(BaseService):
             data = [d for d in data if d.get("fund_type") == fund_type]
         
         if data:
-            try:
-                await self.nav_repo.save_quotes(data)
-            except Exception as e:
-                logger.warning(f"Failed to save fund navs: {e}")
-            
-            # 始终写入缓存
+            # 写入缓存
             await self._set_to_cache(cache_key, data, CACHE_TTL_REALTIME)
         
         return data
+
+    async def save_daily_navs(self, data: List[Dict[str, Any]]) -> int:
+        """
+        保存每日基金净值到数据库（每天只存一条）
+        使用 merge 实现 upsert，相同日期+代码的记录会被更新
+        """
+        if not data:
+            return 0
+        
+        today = date.today()
+        saved_count = 0
+        
+        async with get_db_session() as session:
+            for item in data:
+                try:
+                    nav = FundNav(
+                        date=today,
+                        code=item.get("code", ""),
+                        name=item.get("name", ""),
+                        fund_type=item.get("fund_type", ""),
+                        nav=item.get("nav"),
+                        acc_nav=item.get("acc_nav"),
+                        change=item.get("change"),
+                        change_percent=item.get("change_percent"),
+                        return_1w=item.get("return_1w"),
+                        return_1m=item.get("return_1m"),
+                        return_3m=item.get("return_3m"),
+                        return_6m=item.get("return_6m"),
+                        return_1y=item.get("return_1y"),
+                        return_ytd=item.get("return_ytd"),
+                    )
+                    await session.merge(nav)
+                    saved_count += 1
+                except Exception as e:
+                    logger.debug(f"Failed to save nav for {item.get('code')}: {e}")
+        
+        return saved_count
 
     async def get_fund_type_summary(self, use_cache: bool = True) -> List[Dict[str, Any]]:
         """获取各类型基金的汇总统计数据"""

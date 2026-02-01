@@ -36,3 +36,10 @@ python-dotenv>=1.0.0
 
 # 搜索工具
 tavily-python>=0.3.0
+
+# 无头浏览器（工信部等 JS 渲染页面采集，可选）
+# 安装后需执行: playwright install chromium
+# 国内加速：先设置镜像再安装
+#   export PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright
+#   playwright install chromium
+playwright>=1.40.0

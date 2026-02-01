@@ -4,6 +4,7 @@
 """
 
 import logging
+import os
 import re
 import time
 from datetime import datetime, timedelta
@@ -28,6 +29,113 @@ class NewsClient:
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update(HEADERS)
+
+    # ==================== 通用方法 ====================
+
+    def _fetch_article_content(self, url: str, source: str) -> Optional[str]:
+        """
+        爬取文章详情页内容
+        :param url: 文章URL
+        :param source: 来源（用于选择解析规则）
+        :return: 文章正文内容
+        """
+        if not url:
+            return None
+
+        try:
+            resp = self.session.get(url, timeout=10)
+            resp.encoding = "utf-8"
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            content = None
+
+            if source == "eastmoney":
+                # 东方财富公告/新闻详情（多种页面结构）
+                content_div = (
+                    soup.select_one(".detail-body")
+                    or soup.select_one("#ContentBody")
+                    or soup.select_one(".newsContent")
+                    or soup.select_one("#topNewsCon")
+                    or soup.select_one(".article-content")
+                    or soup.select_one(".Body")
+                )
+                if content_div:
+                    for tag in content_div.find_all(["script", "style"]):
+                        tag.decompose()
+                    content = content_div.get_text(strip=True)
+
+            elif source == "ndrc":
+                # 发改委文章详情
+                content_div = soup.select_one(".TRS_Editor") or soup.select_one(
+                    ".article-content"
+                )
+                if content_div:
+                    # 移除脚本和样式
+                    for tag in content_div.find_all(["script", "style"]):
+                        tag.decompose()
+                    content = content_div.get_text(strip=True)
+
+            elif source == "stats":
+                # 统计局文章详情
+                content_div = soup.select_one(".TRS_Editor") or soup.select_one(
+                    ".center_content"
+                )
+                if content_div:
+                    for tag in content_div.find_all(["script", "style"]):
+                        tag.decompose()
+                    content = content_div.get_text(strip=True)
+
+            elif source == "pbc":
+                # 央行文章详情
+                content_div = (
+                    soup.select_one("#zoom")
+                    or soup.select_one(".TRS_Editor")
+                    or soup.select_one(".content")
+                )
+                if content_div:
+                    for tag in content_div.find_all(["script", "style"]):
+                        tag.decompose()
+                    content = content_div.get_text(strip=True)
+
+            elif source == "csrc":
+                # 证监会文章详情
+                content_div = (
+                    soup.select_one(".TRS_Editor")
+                    or soup.select_one("#ContentRegion")
+                    or soup.select_one(".content")
+                )
+                if content_div:
+                    for tag in content_div.find_all(["script", "style"]):
+                        tag.decompose()
+                    content = content_div.get_text(strip=True)
+
+            elif source == "miit":
+                # 工信部文章详情
+                content_div = (
+                    soup.select_one(".xxgk_con")
+                    or soup.select_one(".article-content")
+                    or soup.select_one(".TRS_Editor")
+                )
+                if content_div:
+                    for tag in content_div.find_all(["script", "style"]):
+                        tag.decompose()
+                    content = content_div.get_text(strip=True)
+
+            # 清理内容
+            if content:
+                # 移除空字符（PostgreSQL 不支持 0x00）
+                content = content.replace("\x00", "")
+                # 移除多余空白
+                content = re.sub(r"\s+", " ", content).strip()
+                # 限制长度（避免存储过长内容）
+                if len(content) > 5000:
+                    content = content[:5000] + "..."
+
+            return content
+
+        except Exception as e:
+            logger.debug(f"Failed to fetch article content from {url}: {e}")
+            return None
 
     # ==================== 财联社 ====================
 
@@ -139,51 +247,59 @@ class NewsClient:
 
     def get_eastmoney_news(self, limit: int = 50) -> List[Dict[str, Any]]:
         """
-        获取东方财富财经新闻
+        获取东方财富财经新闻（使用 7x24 快讯 API）
         """
         result = []
 
         try:
-            # 东方财富 7x24 快讯 API
+            # 东方财富公告/新闻 API
             url = "https://np-anotice-stock.eastmoney.com/api/security/ann"
             params = {
-                "cb": "callback",
                 "sr": "-1",
                 "page_size": limit,
                 "page_index": "1",
-                "ann_type": "A",
+                "ann_type": "SHA,SZA,BJA",
                 "client_source": "web",
                 "f_node": "0",
                 "s_node": "0",
             }
 
             resp = self.session.get(url, params=params, timeout=10)
-            text = resp.text
-
-            # 解析 JSONP
-            if text.startswith("callback("):
-                import json
-
-                text = text[9:-1]  # 去掉 callback( 和 )
-                data = json.loads(text)
-            else:
-                data = resp.json()
+            data = resp.json()
 
             if data.get("data") and data["data"].get("list"):
                 for item in data["data"]["list"][:limit]:
                     try:
                         title = item.get("title", "")
-                        summary = item.get("digest", title)
-                        news_url = item.get("art_code", "")
-                        if news_url:
-                            news_url = f"https://data.eastmoney.com/notices/detail/{news_url}.html"
+                        content = item.get("digest", "") or item.get("content", "")
+                        art_code = item.get("art_code", "")
+                        news_url = (
+                            f"https://data.eastmoney.com/notices/detail/{art_code}.html"
+                            if art_code
+                            else ""
+                        )
+
+                        # 如果内容为空或内容等于标题，尝试获取详情
+                        if not content or content == title:
+                            if news_url:
+                                detail_content = self._fetch_article_content(
+                                    news_url, "eastmoney"
+                                )
+                                if detail_content:
+                                    content = detail_content
+                                time.sleep(0.2)
+                            if not content:
+                                content = title
 
                         # 解析时间
                         notice_date = item.get("notice_date", "")
                         try:
-                            publish_time = datetime.strptime(
-                                notice_date[:19], "%Y-%m-%d %H:%M:%S"
-                            )
+                            if notice_date and len(notice_date) >= 10:
+                                publish_time = datetime.strptime(
+                                    notice_date[:10], "%Y-%m-%d"
+                                )
+                            else:
+                                publish_time = datetime.now()
                         except:
                             publish_time = datetime.now()
 
@@ -192,13 +308,13 @@ class NewsClient:
                                 "source": "eastmoney",
                                 "source_name": "东方财富",
                                 "title": title,
-                                "content": summary,
+                                "content": content,
                                 "url": news_url,
                                 "category": "news",
                                 "publish_time": publish_time,
-                                "importance": self._calc_importance(title + summary),
+                                "importance": self._calc_importance(title + content),
                                 "related_sectors": self._extract_sectors(
-                                    title + summary
+                                    title + content
                                 ),
                             }
                         )
@@ -265,19 +381,13 @@ class NewsClient:
 
             soup = BeautifulSoup(resp.text, "html.parser")
 
-            # 查找新闻列表
-            items = soup.select(".newslist_style ul li") or soup.select(
-                ".list_conter li"
-            )
+            # 央行页面结构：.newslist_style 为 font 内包 a，不是 ul li
+            items = soup.select(".newslist_style a")
 
             for item in items[:limit]:
                 try:
-                    link = item.find("a")
-                    if not link:
-                        continue
-
-                    title = link.get_text(strip=True)
-                    href = link.get("href", "")
+                    title = item.get_text(strip=True)
+                    href = item.get("href", "")
 
                     # 处理相对链接
                     if href.startswith("./"):
@@ -288,23 +398,26 @@ class NewsClient:
                     elif not href.startswith("http"):
                         href = "http://www.pbc.gov.cn" + href
 
-                    # 解析时间
-                    date_span = item.find("span") or item.find(class_="date")
-                    if date_span:
-                        date_str = date_span.get_text(strip=True)
+                    # 从 URL 解析日期，如 .../2026012917370637541/index.html
+                    publish_time = datetime.now()
+                    match = re.search(r"/(\d{8})\d+", href)
+                    if match:
                         try:
-                            publish_time = datetime.strptime(date_str, "%Y-%m-%d")
-                        except:
-                            publish_time = datetime.now()
-                    else:
-                        publish_time = datetime.now()
+                            publish_time = datetime.strptime(match.group(1), "%Y%m%d")
+                        except ValueError:
+                            pass
+
+                    # 尝试获取详情内容
+                    content = self._fetch_article_content(href, "pbc")
+                    if not content:
+                        content = title
 
                     result.append(
                         {
                             "source": "pbc",
                             "source_name": "中国人民银行",
                             "title": title,
-                            "content": title,  # 稍后可以爬取详情
+                            "content": content,
                             "url": href,
                             "category": "policy",
                             "publish_time": publish_time,
@@ -340,8 +453,8 @@ class NewsClient:
 
             soup = BeautifulSoup(resp.text, "html.parser")
 
-            # 查找新闻列表
-            items = soup.select(".fl_list li") or soup.select(".list_main li")
+            # 证监会页面结构：列表在 ul.list 下
+            items = soup.select("ul.list li") or soup.select(".list li")
 
             for item in items[:limit]:
                 try:
@@ -366,12 +479,17 @@ class NewsClient:
                     else:
                         publish_time = datetime.now()
 
+                    # 尝试获取详情内容
+                    content = self._fetch_article_content(href, "csrc")
+                    if not content:
+                        content = title
+
                     result.append(
                         {
                             "source": "csrc",
                             "source_name": "中国证监会",
                             "title": title,
-                            "content": title,
+                            "content": content,
                             "url": href,
                             "category": "policy",
                             "publish_time": publish_time,
@@ -384,7 +502,7 @@ class NewsClient:
                     logger.debug(f"Failed to parse CSRC item: {e}")
                     continue
 
-            logger.info(f"获取到 {len(result)} 条新闻 - 证监会")
+            logger.info(f"获取到 {len(result)} 条新闻 - 中国证监会")
 
         except Exception as e:
             logger.error(f"Failed to fetch CSRC news: {e}")
@@ -437,17 +555,25 @@ class NewsClient:
                     else:
                         publish_time = datetime.now()
 
+                    # 爬取详情页内容
+                    content = self._fetch_article_content(href, "ndrc")
+                    if not content:
+                        content = title
+                    time.sleep(0.3)  # 避免请求过快
+
                     result.append(
                         {
                             "source": "ndrc",
                             "source_name": "国家发改委",
                             "title": title,
-                            "content": title,
+                            "content": content,
                             "url": href,
                             "category": "policy",
                             "publish_time": publish_time,
-                            "importance": self._calc_importance(title, is_policy=True),
-                            "related_sectors": self._extract_sectors(title),
+                            "importance": self._calc_importance(
+                                title + content, is_policy=True
+                            ),
+                            "related_sectors": self._extract_sectors(title + content),
                         }
                     )
 
@@ -505,17 +631,25 @@ class NewsClient:
                     else:
                         publish_time = datetime.now()
 
+                    # 爬取详情页内容
+                    content = self._fetch_article_content(href, "stats")
+                    if not content:
+                        content = title
+                    time.sleep(0.3)  # 避免请求过快
+
                     result.append(
                         {
                             "source": "stats",
                             "source_name": "国家统计局",
                             "title": title,
-                            "content": title,
+                            "content": content,
                             "url": href,
                             "category": "data",
                             "publish_time": publish_time,
-                            "importance": self._calc_importance(title, is_policy=True),
-                            "related_sectors": self._extract_sectors(title),
+                            "importance": self._calc_importance(
+                                title + content, is_policy=True
+                            ),
+                            "related_sectors": self._extract_sectors(title + content),
                         }
                     )
 
@@ -532,53 +666,86 @@ class NewsClient:
 
     # ==================== 工信部 ====================
 
-    def get_miit_news(self, limit: int = 20) -> List[Dict[str, Any]]:
+    def _get_miit_news_via_playwright(
+        self, url: str, limit: int
+    ) -> List[Dict[str, Any]]:
         """
-        获取工信部新闻/政策
+        通过无头浏览器获取工信部列表页渲染后的 HTML 并解析。
+        需安装: pip install playwright && playwright install chromium
         """
         result = []
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            logger.debug("playwright 未安装，跳过工信部无头浏览器采集")
+            return result
 
         try:
-            # 工信部新闻
-            url = "https://www.miit.gov.cn/xwdt/gxdt/ldhd/index.html"
-            resp = self.session.get(url, timeout=10)
-            resp.encoding = "utf-8"
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                context = browser.new_context(
+                    user_agent=HEADERS["User-Agent"],
+                    locale="zh-CN",
+                )
+                page = context.new_page()
+                page.goto(url, wait_until="domcontentloaded", timeout=15000)
+                # 等待 JS 渲染出的列表链接出现
+                page.wait_for_selector(
+                    ".clist_con a[href*='index.html'], .clist_con ul li a",
+                    timeout=20000,
+                )
+                time.sleep(1)  # 再等片刻确保列表完整
+                html = page.content()
+                context.close()
+                browser.close()
 
-            soup = BeautifulSoup(resp.text, "html.parser")
-
-            items = soup.select(".list li") or soup.select(".gzdt-box li")
-
-            for item in items[:limit]:
-                try:
-                    link = item.find("a")
-                    if not link:
-                        continue
-
-                    title = link.get_text(strip=True)
+            soup = BeautifulSoup(html, "html.parser")
+            # 渲染后列表在 .clist_con 内，链接或 li
+            container = soup.select_one(".clist_con")
+            if not container:
+                return result
+            items = container.select("ul li") or container.select("li")
+            if not items:
+                links = container.select("a[href*='index.html']")
+                for link in links[:limit]:
                     href = link.get("href", "")
-
+                    if not href or "javascript" in href:
+                        continue
+                    title = link.get_text(strip=True)
+                    if not title or len(title) < 2:
+                        continue
                     if href.startswith("./"):
                         href = "https://www.miit.gov.cn/xwdt/gxdt/ldhd/" + href[2:]
                     elif not href.startswith("http"):
                         href = "https://www.miit.gov.cn" + href
-
-                    # 解析时间
-                    date_span = item.find("span") or item.find(class_="date")
+                    date_span = link.find_parent("li")
                     if date_span:
-                        date_str = date_span.get_text(strip=True)
-                        try:
-                            publish_time = datetime.strptime(date_str, "%Y-%m-%d")
-                        except:
+                        date_el = date_span.find("span") or date_span.find(
+                            class_="date"
+                        )
+                        if date_el:
+                            try:
+                                publish_time = datetime.strptime(
+                                    date_el.get_text(strip=True), "%Y-%m-%d"
+                                )
+                            except ValueError:
+                                publish_time = datetime.now()
+                        else:
                             publish_time = datetime.now()
                     else:
                         publish_time = datetime.now()
+
+                    # 尝试获取详情内容
+                    content = self._fetch_article_content(href, "miit")
+                    if not content:
+                        content = title
 
                     result.append(
                         {
                             "source": "miit",
                             "source_name": "工信部",
                             "title": title,
-                            "content": title,
+                            "content": content,
                             "url": href,
                             "category": "policy",
                             "publish_time": publish_time,
@@ -586,16 +753,77 @@ class NewsClient:
                             "related_sectors": self._extract_sectors(title),
                         }
                     )
+                return result
 
+            for item in items[:limit]:
+                try:
+                    link = item.find("a")
+                    if not link:
+                        continue
+                    title = link.get_text(strip=True)
+                    href = link.get("href", "")
+                    if not href or "javascript" in href:
+                        continue
+                    if href.startswith("./"):
+                        href = "https://www.miit.gov.cn/xwdt/gxdt/ldhd/" + href[2:]
+                    elif not href.startswith("http"):
+                        href = "https://www.miit.gov.cn" + href
+                    date_span = item.find("span") or item.find(class_="date")
+                    if date_span:
+                        date_str = date_span.get_text(strip=True)
+                        try:
+                            publish_time = datetime.strptime(date_str, "%Y-%m-%d")
+                        except ValueError:
+                            publish_time = datetime.now()
+                    else:
+                        publish_time = datetime.now()
+
+                    # 尝试获取详情内容
+                    content = self._fetch_article_content(href, "miit")
+                    if not content:
+                        content = title
+
+                    result.append(
+                        {
+                            "source": "miit",
+                            "source_name": "工信部",
+                            "title": title,
+                            "content": content,
+                            "url": href,
+                            "category": "policy",
+                            "publish_time": publish_time,
+                            "importance": self._calc_importance(title, is_policy=True),
+                            "related_sectors": self._extract_sectors(title),
+                        }
+                    )
                 except Exception as e:
                     logger.debug(f"Failed to parse MIIT item: {e}")
                     continue
-
-            logger.info(f"获取到 {len(result)} 条新闻 - 工信部")
-
+            return result
         except Exception as e:
-            logger.error(f"Failed to fetch MIIT news: {e}")
+            logger.warning(f"工信部无头浏览器采集失败: {e}")
+            return result
 
+    def get_miit_news(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        获取工信部新闻/政策。
+        列表页由 JS 动态渲染，使用无头浏览器（Playwright）采集。
+        安装: pip install playwright && playwright install chromium
+        关闭采集（省内存）: 环境变量 MIIT_USE_PLAYWRIGHT=0 或 false
+        """
+        use_playwright = os.environ.get("MIIT_USE_PLAYWRIGHT", "1").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        if not use_playwright:
+            logger.info("工信部采集已关闭 (MIIT_USE_PLAYWRIGHT=0) - 获取到 0 条新闻")
+            return []
+
+        url = "https://www.miit.gov.cn/xwdt/gxdt/ldhd/index.html"
+        result = self._get_miit_news_via_playwright(url, limit)
+
+        logger.info(f"获取到 {len(result)} 条新闻 - 工信部")
         return result
 
     # ==================== 综合获取 ====================

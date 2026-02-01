@@ -141,10 +141,10 @@ const Dashboard: React.FC = () => {
             change: item.change || 0,
             changePercent: item.change_percent || item.changePercent || 0,
           }));
-        }
-      } catch (error) {
-        console.error(`获取${market}市场数据失败:`, error);
       }
+    } catch (error) {
+        console.error(`获取${market}市场数据失败:`, error);
+    }
     });
     
     await Promise.allSettled(promises);
@@ -419,7 +419,7 @@ const Dashboard: React.FC = () => {
                         {formatChange(item.change)} ({formatChange(item.changePercent)}%)
                       </div>
                     </div>
-                  </Col>
+        </Col>
                 ))}
               </Row>
             </Card>
@@ -470,4 +470,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default Dashboard; 

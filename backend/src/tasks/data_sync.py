@@ -5,8 +5,8 @@
 
 import asyncio
 import logging
-from datetime import datetime
-from typing import Callable, List
+from datetime import datetime, timedelta
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,9 @@ class DataSyncTask:
     def __init__(self):
         self._tasks: List[asyncio.Task] = []
         self._running = False
+        # 用于同步各任务的状态
+        self._daily_news_ready = asyncio.Event()
+        self._daily_fund_ready = asyncio.Event()
 
     async def start(self):
         """启动所有同步任务"""
@@ -46,11 +49,11 @@ class DataSyncTask:
         self._tasks = [
             asyncio.create_task(self._sync_market_data(market_service)),
             asyncio.create_task(self._sync_gold_data(gold_service)),
-            asyncio.create_task(self._sync_fund_data(fund_service)),
             asyncio.create_task(self._sync_futures_data(futures_service)),
             asyncio.create_task(self._sync_watchlist_data(stock_service)),
             asyncio.create_task(self._sync_etf_data(fund_service)),
-            asyncio.create_task(self._sync_news_data(news_service)),
+            # 每日定时任务（14:00 执行）
+            asyncio.create_task(self._daily_advice_task(news_service, fund_service)),
         ]
 
         logger.info(f"Started {len(self._tasks)} data sync tasks")
@@ -151,18 +154,6 @@ class DataSyncTask:
             # 每 30 秒同步一次
             await asyncio.sleep(30)
 
-    async def _sync_fund_data(self, service):
-        """同步基金数据"""
-        while self._running:
-            try:
-                await service.get_realtime_navs(use_cache=False)
-                logger.info("Fund data sync completed")
-            except Exception as e:
-                logger.warning(f"Failed to sync fund data: {e}")
-
-            # 每 60 秒同步一次（基金数据更新频率较低）
-            await asyncio.sleep(60)
-
     async def _sync_futures_data(self, service):
         """同步期货数据"""
         while self._running:
@@ -235,40 +226,142 @@ class DataSyncTask:
             # 每 60 秒同步一次
             await asyncio.sleep(60)
 
-    async def _sync_news_data(self, service):
+    async def _daily_advice_task(self, news_service, fund_service):
         """
-        同步新闻数据并使用 LLM 进行处理
-        - 启动时立即获取24小时内的新闻并总结
-        - 之后每6小时（可配置）获取一次新闻
+        每日投资建议任务（每天14:00执行）
+        流程：
+        1. 并行执行：新闻同步+LLM处理 | 基金数据同步
+        2. Agent 生成投资建议
+        3. 多渠道推送（日志/邮件/短信/数据库）
         """
-        from src.config import NEWS_SYNC_INTERVAL
+        from src.agent import InvestmentAgent
+        from src.config import DAILY_ADVICE_HOUR, DAILY_ADVICE_MINUTE
+        from src.service.notification_service import NotificationService
 
-        # 首次启动时立即同步一次
-        first_sync = True
+        notification_service = NotificationService()
+        first_run = True
 
         while self._running:
             try:
-                # 步骤1: 同步新闻
-                count = await service.sync_news()
-                if first_sync:
-                    logger.info(f"[News] 首次同步完成: {count} 条新增")
-                    first_sync = False
-                elif count > 0:
-                    logger.info(f"[News] 同步完成: {count} 条新增")
+                # 首次启动时立即执行一次
+                if first_run:
+                    logger.info("[DailyAdvice] 应用启动，立即执行每日任务...")
+                    await self._execute_daily_advice(
+                        news_service, fund_service, notification_service
+                    )
+                    first_run = False
 
-                # 步骤2: 处理所有未处理的新闻（生成摘要、分析情感）
-                processed = await service.process_unprocessed_news()
-                if processed > 0:
-                    logger.info(f"[News] LLM 处理完成，共处理 {processed} 条新闻")
+                now = datetime.now()
+                # 计算下一次执行时间
+                target_hour = DAILY_ADVICE_HOUR
+                target_minute = DAILY_ADVICE_MINUTE
+
+                next_run = now.replace(
+                    hour=target_hour, minute=target_minute, second=0, microsecond=0
+                )
+
+                # 如果今天的时间已经过了，设置为明天
+                if now >= next_run:
+                    next_run = next_run + timedelta(days=1)
+
+                wait_seconds = (next_run - now).total_seconds()
+
+                logger.info(
+                    f"[DailyAdvice] 下次执行时间: {next_run.strftime('%Y-%m-%d %H:%M:%S')} "
+                    f"(等待 {wait_seconds/3600:.1f} 小时)"
+                )
+                await asyncio.sleep(wait_seconds)
+
+                # 执行每日任务
+                await self._execute_daily_advice(
+                    news_service, fund_service, notification_service
+                )
 
             except Exception as e:
-                logger.error(f"[News] 同步出错: {e}")
+                logger.error(f"[DailyAdvice] 任务出错: {e}")
+                # 发生错误时等待 5 分钟后重试
+                await asyncio.sleep(300)
 
-            # 等待下一次同步（默认6小时）
-            logger.info(
-                f"[News] 下次同步在 {NEWS_SYNC_INTERVAL} 秒后 ({NEWS_SYNC_INTERVAL // 3600}h)"
-            )
-            await asyncio.sleep(NEWS_SYNC_INTERVAL)
+    async def _execute_daily_advice(self, news_service, fund_service, notification_service):
+        """执行每日投资建议任务"""
+        from src.agent import InvestmentAgent
+
+        date_str = datetime.now().strftime("%Y年%m月%d日")
+        logger.info(f"[DailyAdvice] ========== 开始执行 {date_str} 每日任务 ==========")
+
+        # 步骤1: 并行执行【新闻同步+LLM处理】和【基金数据同步】
+        logger.info("[DailyAdvice] 步骤1/3: 并行执行数据收集...")
+        logger.info("[DailyAdvice]   ├─ 任务A: 新闻同步 + LLM处理")
+        logger.info("[DailyAdvice]   └─ 任务B: 基金数据同步")
+
+        # 并行执行两组任务
+        news_result, fund_result = await asyncio.gather(
+            self._sync_news_and_process(news_service),
+            self._sync_fund_data_once(fund_service),
+            return_exceptions=True,
+        )
+
+        # 处理结果
+        if isinstance(news_result, Exception):
+            logger.error(f"[DailyAdvice] 新闻任务失败: {news_result}")
+        else:
+            news_count, processed = news_result
+            logger.info(f"[DailyAdvice] 任务A完成: 同步 {news_count} 条新闻，处理 {processed} 条")
+
+        if isinstance(fund_result, Exception):
+            logger.error(f"[DailyAdvice] 基金任务失败: {fund_result}")
+        else:
+            logger.info(f"[DailyAdvice] 任务B完成: 保存 {fund_result} 条基金数据")
+
+        # 步骤2: Agent 生成投资建议
+        logger.info("[DailyAdvice] 步骤2/3: Agent 生成投资建议...")
+        advice = None
+        try:
+            agent = InvestmentAgent(user_id="daily_advice")
+            if agent.is_configured():
+                advice = agent.get_investment_advice()
+                logger.info(f"[DailyAdvice] 投资建议生成成功，长度: {len(advice)} 字符")
+            else:
+                logger.warning("[DailyAdvice] Agent 未配置，跳过生成投资建议")
+        except Exception as e:
+            logger.error(f"[DailyAdvice] 生成投资建议失败: {e}")
+
+        # 步骤3: 多渠道推送
+        if advice:
+            enabled_channels = notification_service.get_enabled_channels()
+            logger.info(f"[DailyAdvice] 步骤3/3: 推送通知 (渠道: {', '.join(enabled_channels)})...")
+            try:
+                results = notification_service.send_investment_advice(advice, date_str)
+                for channel, success in results.items():
+                    status = "✅" if success else "❌"
+                    logger.info(f"[DailyAdvice]   {status} {channel}")
+            except Exception as e:
+                logger.error(f"[DailyAdvice] 通知推送失败: {e}")
+        else:
+            logger.info("[DailyAdvice] 步骤3/3: 无投资建议，跳过推送")
+
+        logger.info(f"[DailyAdvice] ========== {date_str} 每日任务完成 ==========")
+
+    async def _sync_news_and_process(self, news_service):
+        """同步新闻并用LLM处理（作为一个并行任务）"""
+        # 同步新闻
+        news_count = await news_service.sync_news()
+        logger.info(f"[DailyAdvice]   ├─ 新闻同步完成: {news_count} 条")
+
+        # LLM 处理
+        processed = await news_service.process_unprocessed_news()
+        logger.info(f"[DailyAdvice]   ├─ LLM处理完成: {processed} 条")
+
+        return news_count, processed
+
+    async def _sync_fund_data_once(self, fund_service):
+        """同步基金数据一次（作为一个并行任务）"""
+        fund_data = await fund_service.get_realtime_navs(use_cache=False)
+        saved = 0
+        if fund_data:
+            saved = await fund_service.save_daily_navs(fund_data)
+            logger.info(f"[DailyAdvice]   └─ 基金数据保存完成: {saved} 条")
+        return saved
 
 
 # 全局任务管理器实例
